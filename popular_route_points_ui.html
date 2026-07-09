@@ -247,8 +247,7 @@
     }
 
     .filter-toggle,
-    .report-toggle,
-    .more-toggle {
+    .report-toggle {
       width: 100%;
       background: #1e2f4a;
       border: 1px solid #3b82f6;
@@ -275,23 +274,17 @@
       cursor: default;
     }
 
-    .more-toggle {
-      min-height: 38px;
-      font-size: 0;
-    }
-
-    .more-toggle i { font-size: 14px; }
-
-    .more-wrap {
-      width: 100%;
-      position: relative;
-    }
-
     .panel-tabs {
       display: flex;
       gap: 4px;
       padding: 16px 14px 12px;
       flex-shrink: 0;
+    }
+
+    .display-menu-wrap {
+      position: relative;
+      flex: 0 0 52px;
+      display: flex;
     }
 
     .panel-tab {
@@ -325,6 +318,54 @@
       background: #172238;
       border-color: #253040;
       color: #607899;
+    }
+
+    .panel-tab.more-tab {
+      width: 100%;
+      flex: 0 0 auto;
+      cursor: pointer;
+    }
+
+    .display-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      z-index: 30;
+      display: none;
+      width: 248px;
+      padding: 8px;
+      background: #0f1728;
+      border: 1px solid #253040;
+      border-radius: 14px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+    }
+
+    .display-menu.active { display: block; }
+
+    .display-menu-item {
+      width: 100%;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: transparent;
+      color: #90a9d0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-family: 'Inter', sans-serif;
+      text-align: left;
+      cursor: default;
+    }
+
+    .display-menu-item.active {
+      background: #1e2f4a;
+      color: #ecf2ff;
+    }
+
+    .display-menu-item i {
+      width: 14px;
+      text-align: center;
     }
 
     .panel-content {
@@ -434,72 +475,75 @@
     .point-intersections {
       display: none;
       margin-top: 12px;
-      padding: 12px;
-      background: #0f1728;
-      border: 1px solid #253040;
-      border-radius: 14px;
     }
 
     .point-chip.active .point-intersections { display: block; }
 
-    .intersection-title {
-      color: #90a9d0;
-      font-size: 11px;
-      font-weight: 600;
-      margin-bottom: 10px;
+    .event-card {
+      background: #1a2338;
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      border: 1px solid #2e3f58;
+      cursor: default;
+      transition: 0.15s;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .event-card:last-child { margin-bottom: 0; }
+
+    .event-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: #1e2b40;
       display: flex;
       align-items: center;
-      gap: 6px;
-    }
-
-    .intersection-row {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 10px;
-      padding-bottom: 11px;
-      margin-bottom: 11px;
-      border-bottom: 1px solid #253040;
-    }
-
-    .intersection-row:last-child {
-      border-bottom: none;
-      padding-bottom: 0;
-      margin-bottom: 0;
-    }
-
-    .intersection-index {
-      width: 26px;
-      height: 26px;
-      border-radius: 9px;
-      background: #1e2f4a;
-      color: #5f9eff;
-      display: inline-flex;
-      align-items: center;
       justify-content: center;
-      font-size: 12px;
-      font-weight: 600;
+      font-size: 18px;
+      color: #5f9eff;
       flex-shrink: 0;
     }
 
-    .intersection-name {
-      color: #ecf2ff;
-      font-size: 12px;
+    .event-info { flex: 1; min-width: 0; }
+
+    .event-type {
       font-weight: 600;
+      font-size: 13px;
+      color: #ecf2ff;
+      margin-bottom: 2px;
     }
 
-    .intersection-meta {
+    .event-location {
+      font-size: 12px;
       color: #7c95b5;
-      font-size: 12px;
-      margin-top: 3px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
+      margin-bottom: 4px;
     }
 
-    .intersection-time {
-      color: #5f9eff;
+    .event-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 5px;
+    }
+
+    .event-pill {
+      color: #cbd9f0;
+      font-size: 11px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: #24334c;
+    }
+
+    .event-time {
       font-size: 12px;
-      margin-top: 4px;
+      color: #5f9eff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .panel-content::-webkit-scrollbar { width: 4px; }
@@ -548,7 +592,8 @@
       .map-top-search { padding: 0 12px; font-size: 13px; }
       .map-top-nav-item { min-width: auto; padding: 0 9px; font-size: 13px; }
       .search-name-row { flex-direction: column; }
-      .header-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr 1fr; }
+      .header-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+      .display-menu { right: 0; }
     }
   </style>
 </head>
@@ -607,11 +652,6 @@
             <i class="fas fa-filter"></i>
             Фильтры
           </button>
-          <div class="more-wrap">
-            <button class="more-toggle" id="moreToggle" type="button" onclick="activatePopularMode()" aria-label="Популярные точки маршрута" title="Популярные точки маршрута">
-              <i class="fas fa-ellipsis-h"></i>
-            </button>
-          </div>
         </div>
       </div>
     </div>
@@ -623,6 +663,25 @@
       <button class="panel-tab disabled" type="button" aria-disabled="true">
         <i class="fas fa-route"></i> Маршруты
       </button>
+      <div class="display-menu-wrap">
+        <button class="panel-tab more-tab active" id="displayMenuToggle" type="button" onclick="toggleDisplayMenu(event)" aria-label="Варианты отображения" aria-expanded="false">
+          <i class="fas fa-ellipsis-h"></i>
+        </button>
+        <div class="display-menu" id="displayMenu">
+          <button class="display-menu-item" type="button" aria-disabled="true">
+            <i class="fas fa-list-ul"></i>
+            События
+          </button>
+          <button class="display-menu-item" type="button" aria-disabled="true">
+            <i class="fas fa-route"></i>
+            Маршруты
+          </button>
+          <button class="display-menu-item active" type="button" onclick="activatePopularMode()">
+            <i class="fas fa-map-location-dot"></i>
+            Популярные точки маршрута
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="panel-content">
@@ -787,19 +846,20 @@
             <span class="point-count">${point.passCount}</span>
           </div>
           <div class="point-intersections">
-            <div class="intersection-title"><i class="fas fa-code-branch"></i> Пересечения проездов</div>
-            ${point.intersections.map((intersection, intersectionIndex) => `
-              <div class="intersection-row">
-                <span class="intersection-index">${intersectionIndex + 1}</span>
-                <span>
-                  <span class="intersection-name">${intersection.route}</span>
-                  <span class="intersection-meta">
-                    <span>${intersection.from}</span>
-                    <span>${intersection.direction}</span>
-                    <span>${intersection.to}</span>
-                  </span>
-                  <span class="intersection-time"><i class="far fa-clock"></i> ${intersection.time} · ${intersection.duration}</span>
-                </span>
+            ${point.intersections.map(intersection => `
+              <div class="event-card">
+                <div class="event-icon"><i class="fas fa-car"></i></div>
+                <div class="event-info">
+                  <div class="event-type">Проезд через популярную точку</div>
+                  <div class="event-location">${point.name}</div>
+                  <div class="event-meta">
+                    <span class="event-pill">${intersection.route}</span>
+                    <span class="event-pill">${intersection.direction}</span>
+                    <span class="event-pill">${intersection.duration}</span>
+                  </div>
+                  <div class="event-location">${intersection.from} → ${intersection.to}</div>
+                  <div class="event-time"><i class="far fa-clock"></i> ${intersection.time}</div>
+                </div>
               </div>
             `).join('')}
           </div>
@@ -820,9 +880,26 @@
     }
   }
 
+  function toggleDisplayMenu(event) {
+    event.stopPropagation();
+    const menu = document.getElementById('displayMenu');
+    const button = document.getElementById('displayMenuToggle');
+    menu.classList.toggle('active');
+    button.setAttribute('aria-expanded', menu.classList.contains('active') ? 'true' : 'false');
+  }
+
   function activatePopularMode() {
+    document.getElementById('displayMenu').classList.remove('active');
+    document.getElementById('displayMenuToggle').setAttribute('aria-expanded', 'false');
     document.querySelector('.popular-header').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.display-menu-wrap')) {
+      document.getElementById('displayMenu').classList.remove('active');
+      document.getElementById('displayMenuToggle').setAttribute('aria-expanded', 'false');
+    }
+  });
 
   renderPointChips();
   renderMap();
