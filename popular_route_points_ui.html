@@ -479,72 +479,18 @@
 
     .point-chip.active .point-intersections { display: block; }
 
-    .event-card {
+    .pass-time-row {
       background: #1a2338;
-      border-radius: 14px;
-      padding: 12px 14px;
-      margin-bottom: 8px;
       border: 1px solid #2e3f58;
-      cursor: default;
-      transition: 0.15s;
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-    }
-
-    .event-card:last-child { margin-bottom: 0; }
-
-    .event-icon {
-      width: 40px;
-      height: 40px;
       border-radius: 12px;
-      background: #1e2b40;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
       color: #5f9eff;
-      flex-shrink: 0;
-    }
-
-    .event-info { flex: 1; min-width: 0; }
-
-    .event-type {
-      font-weight: 600;
-      font-size: 13px;
-      color: #ecf2ff;
-      margin-bottom: 2px;
-    }
-
-    .event-location {
       font-size: 12px;
-      color: #7c95b5;
-      margin-bottom: 4px;
+      font-weight: 500;
+      padding: 10px 12px;
+      margin-bottom: 8px;
     }
 
-    .event-meta {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 5px;
-    }
-
-    .event-pill {
-      color: #cbd9f0;
-      font-size: 11px;
-      padding: 3px 7px;
-      border-radius: 999px;
-      background: #24334c;
-    }
-
-    .event-time {
-      font-size: 12px;
-      color: #5f9eff;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    .pass-time-row:last-child { margin-bottom: 0; }
 
     .panel-content::-webkit-scrollbar { width: 4px; }
     .panel-content::-webkit-scrollbar-thumb { background: #2e405b; border-radius: 4px; }
@@ -640,6 +586,8 @@
             <span>47 проездов</span>
             <span>•</span>
             <span>5 популярных точек</span>
+            <span>•</span>
+            <span>ТС А123ВС177</span>
           </div>
         </div>
 
@@ -668,14 +616,6 @@
           <i class="fas fa-ellipsis-h"></i>
         </button>
         <div class="display-menu" id="displayMenu">
-          <button class="display-menu-item" type="button" aria-disabled="true">
-            <i class="fas fa-list-ul"></i>
-            События
-          </button>
-          <button class="display-menu-item" type="button" aria-disabled="true">
-            <i class="fas fa-route"></i>
-            Маршруты
-          </button>
           <button class="display-menu-item active" type="button" onclick="activatePopularMode()">
             <i class="fas fa-map-location-dot"></i>
             Популярные точки маршрута
@@ -713,10 +653,10 @@
       coords: [53.143899, 50.049745],
       passCount: 42,
       hot: true,
-      intersections: [
-        { time: '2025-09-20 16:04:33', route: 'Московское шоссе -> ул. Авроры', from: 'Московское шоссе, 16-й километр', to: 'ул. Авроры, 110', duration: '5 мин 36 с', direction: '→' },
-        { time: '2025-09-22 18:35:22', route: 'ул. Авроры -> Московское шоссе', from: 'ул. Авроры, 110', to: 'Московское шоссе, 16-й километр', duration: '5 мин 58 с', direction: '←' },
-        { time: '2025-10-15 18:48:42', route: 'Московское шоссе -> Ново-Садовая', from: 'ул. Авроры, 110', to: 'ул. Ново-Садовая, 160', duration: '6 мин 45 с', direction: '→' }
+      passTimes: [
+        '2025-09-20 16:04:33',
+        '2025-09-22 18:35:22',
+        '2025-10-15 18:48:42'
       ]
     },
     {
@@ -726,10 +666,10 @@
       coords: [53.1375, 49.975],
       passCount: 36,
       hot: true,
-      intersections: [
-        { time: '2025-09-20 15:58:56', route: 'КПП Южный -> Московское шоссе', from: 'КПП Южный', to: 'Московское шоссе, 18-й километр', duration: '2 мин 15 с', direction: '→' },
-        { time: '2025-10-20 09:59:10', route: 'ул. Алма-Атинская -> Московское шоссе', from: 'ул. Алма-Атинская, 72', to: 'Московское шоссе, 18-й километр', duration: '1 мин 06 с', direction: '→' },
-        { time: '2025-11-12 19:27:51', route: 'Московское шоссе -> ул. Гагарина', from: 'Московское шоссе, 18-й километр', to: 'ул. Гагарина, 95', duration: '31 мин 30 с', direction: '←' }
+      passTimes: [
+        '2025-09-20 15:58:56',
+        '2025-10-20 09:59:10',
+        '2025-11-12 19:27:51'
       ]
     },
     {
@@ -739,10 +679,10 @@
       coords: [53.1525, 50.068333],
       passCount: 35,
       hot: true,
-      intersections: [
-        { time: '2025-09-20 16:06:45', route: 'Московское шоссе -> Ново-Садовая', from: 'Московское шоссе, 18-й километр', to: 'ул. Ново-Садовая, 210', duration: '4 мин 01 с', direction: '→' },
-        { time: '2025-10-13 18:36:10', route: 'пр. Ленина -> Московское шоссе', from: 'пр. Ленина, 42', to: 'Московское шоссе, 18-й километр', duration: '4 мин 32 с', direction: '←' },
-        { time: '2025-11-14 18:15:49', route: 'ул. Демократическая -> Московское шоссе', from: 'ул. Демократическая, 45', to: 'Московское шоссе, 18-й километр', duration: '7 мин 48 с', direction: '←' }
+      passTimes: [
+        '2025-09-20 16:06:45',
+        '2025-10-13 18:36:10',
+        '2025-11-14 18:15:49'
       ]
     },
     {
@@ -752,10 +692,10 @@
       coords: [53.1875, 50.08],
       passCount: 30,
       hot: false,
-      intersections: [
-        { time: '2025-09-23 18:35:39', route: 'ул. Осипенко -> пр. Ленина', from: 'ул. Осипенко, 11', to: 'ул. Ново-Садовая, 160', duration: '5 мин 28 с', direction: '←' },
-        { time: '2025-10-20 18:47:23', route: 'Ново-Садовая -> ул. Осипенко', from: 'ул. Ново-Садовая, 160', to: 'ул. Осипенко, 11', duration: '1 мин 57 с', direction: '→' },
-        { time: '2025-11-14 09:54:40', route: 'ул. Демократическая -> Ново-Садовая', from: 'ул. Демократическая, 45', to: 'ул. Ново-Садовая, 160', duration: '7 мин 47 с', direction: '←' }
+      passTimes: [
+        '2025-09-23 18:35:39',
+        '2025-10-20 18:47:23',
+        '2025-11-14 09:54:40'
       ]
     },
     {
@@ -765,10 +705,10 @@
       coords: [53.203055, 50.138888],
       passCount: 32,
       hot: false,
-      intersections: [
-        { time: '2025-09-22 10:28:16', route: 'ул. Стара-Загора -> ул. Ташкентская', from: 'ул. Стара-Загора, 118', to: 'ул. Ташкентская, 92', duration: '1 мин 41 с', direction: '→' },
-        { time: '2025-10-27 10:23:02', route: 'ул. Ташкентская -> пр. Кирова', from: 'ул. Ташкентская, 92', to: 'пр. Кирова, 391', duration: '20 мин 56 с', direction: '→' },
-        { time: '2025-11-12 12:56:59', route: 'пр. Кирова -> ул. Ташкентская', from: 'пр. Кирова, 391', to: 'ул. Ташкентская, 92', duration: '5 мин 00 с', direction: '←' }
+      passTimes: [
+        '2025-09-22 10:28:16',
+        '2025-10-27 10:23:02',
+        '2025-11-12 12:56:59'
       ]
     }
   ];
@@ -846,21 +786,8 @@
             <span class="point-count">${point.passCount}</span>
           </div>
           <div class="point-intersections">
-            ${point.intersections.map(intersection => `
-              <div class="event-card">
-                <div class="event-icon"><i class="fas fa-car"></i></div>
-                <div class="event-info">
-                  <div class="event-type">Проезд через популярную точку</div>
-                  <div class="event-location">${point.name}</div>
-                  <div class="event-meta">
-                    <span class="event-pill">${intersection.route}</span>
-                    <span class="event-pill">${intersection.direction}</span>
-                    <span class="event-pill">${intersection.duration}</span>
-                  </div>
-                  <div class="event-location">${intersection.from} → ${intersection.to}</div>
-                  <div class="event-time"><i class="far fa-clock"></i> ${intersection.time}</div>
-                </div>
-              </div>
+            ${point.passTimes.map(time => `
+              <div class="pass-time-row">${time}</div>
             `).join('')}
           </div>
         </div>
