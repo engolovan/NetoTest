@@ -248,8 +248,7 @@
 
     .filter-toggle,
     .report-toggle,
-    .more-toggle,
-    .popular-toggle {
+    .more-toggle {
       width: 100%;
       background: #1e2f4a;
       border: 1px solid #3b82f6;
@@ -276,44 +275,17 @@
       cursor: default;
     }
 
+    .more-toggle {
+      min-height: 38px;
+      font-size: 0;
+    }
+
+    .more-toggle i { font-size: 14px; }
+
     .more-wrap {
       width: 100%;
       position: relative;
     }
-
-    .more-menu {
-      position: absolute;
-      top: calc(100% + 8px);
-      right: 0;
-      width: 226px;
-      display: none;
-      padding: 8px;
-      background: #0f1728;
-      border: 1px solid #253040;
-      border-radius: 14px;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
-      z-index: 20;
-    }
-
-    .more-menu.active { display: block; }
-
-    .menu-action {
-      width: 100%;
-      border: none;
-      border-radius: 10px;
-      padding: 10px 12px;
-      background: #1e2f4a;
-      color: #ecf2ff;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      font-family: 'Inter', sans-serif;
-      cursor: pointer;
-      text-align: left;
-    }
-
-    .menu-action:hover { background: #243b60; }
 
     .panel-tabs {
       display: flex;
@@ -376,16 +348,9 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 5px;
     }
 
     .popular-title i { color: #5f9eff; }
-
-    .popular-subtitle {
-      color: #7c95b5;
-      font-size: 12px;
-      line-height: 1.45;
-    }
 
     .point-chips {
       display: grid;
@@ -402,10 +367,7 @@
       background: #172238;
       color: #cbd9f0;
       cursor: pointer;
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      align-items: center;
-      gap: 10px;
+      display: block;
       font-family: 'Inter', sans-serif;
       text-align: left;
       transition: 0.2s;
@@ -416,6 +378,13 @@
       background: #1e2f4a;
       border-color: #3b82f6;
       color: #ecf2ff;
+    }
+
+    .point-chip-main {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 10px;
     }
 
     .point-rank {
@@ -445,7 +414,7 @@
       white-space: nowrap;
     }
 
-    .point-coords {
+    .point-area {
       font-size: 11px;
       color: #7c95b5;
       margin-top: 2px;
@@ -462,123 +431,75 @@
       text-align: center;
     }
 
-    .routes-toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      color: #7c95b5;
-      font-size: 12px;
-      margin-bottom: 10px;
-      padding: 2px 2px 0;
-      gap: 12px;
+    .point-intersections {
+      display: none;
+      margin-top: 12px;
+      padding: 12px;
+      background: #0f1728;
+      border: 1px solid #253040;
+      border-radius: 14px;
     }
 
-    .route-group-card {
-      background: #141e31;
-      border: 1px solid #2e3f58;
-      border-radius: 16px;
+    .point-chip.active .point-intersections { display: block; }
+
+    .intersection-title {
+      color: #90a9d0;
+      font-size: 11px;
+      font-weight: 600;
       margin-bottom: 10px;
-      overflow: hidden;
-    }
-
-    .route-group-card.active { border-color: #3b82f6; }
-
-    .route-group-toggle {
-      width: 100%;
-      background: transparent;
-      border: none;
-      padding: 13px 14px;
-      color: #ecf2ff;
-      font-family: 'Inter', sans-serif;
       display: flex;
       align-items: center;
+      gap: 6px;
+    }
+
+    .intersection-row {
+      display: grid;
+      grid-template-columns: auto 1fr;
       gap: 10px;
-      text-align: left;
-      cursor: default;
+      padding-bottom: 11px;
+      margin-bottom: 11px;
+      border-bottom: 1px solid #253040;
     }
 
-    .route-index {
-      width: 30px;
-      height: 30px;
-      border-radius: 10px;
+    .intersection-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+      margin-bottom: 0;
+    }
+
+    .intersection-index {
+      width: 26px;
+      height: 26px;
+      border-radius: 9px;
       background: #1e2f4a;
       color: #5f9eff;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
       flex-shrink: 0;
+    }
+
+    .intersection-name {
+      color: #ecf2ff;
+      font-size: 12px;
       font-weight: 600;
-      font-size: 13px;
     }
 
-    .route-summary { flex: 1; min-width: 0; }
-
-    .route-title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      font-weight: 600;
-      font-size: 13px;
-      margin-bottom: 3px;
-    }
-
-    .route-title span:first-child {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .route-stats {
+    .intersection-meta {
       color: #7c95b5;
       font-size: 12px;
+      margin-top: 3px;
       display: flex;
-      flex-wrap: wrap;
       gap: 8px;
+      flex-wrap: wrap;
     }
 
-    .route-points {
-      display: block;
-      padding: 0 14px 12px 54px;
-    }
-
-    .route-point {
-      position: relative;
-      padding: 0 0 12px 18px;
-      border-left: 1px dashed #365273;
-    }
-
-    .route-point:last-child {
-      border-left-color: transparent;
-      padding-bottom: 0;
-    }
-
-    .route-point::before {
-      content: "";
-      position: absolute;
-      left: -5px;
-      top: 1px;
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: #3b82f6;
-      box-shadow: 0 0 0 4px #13233a;
-    }
-
-    .route-point.featured::before {
-      background: #ef4444;
-      box-shadow: 0 0 0 4px #3a1f1f;
-    }
-
-    .route-point-title { color: #ecf2ff; font-size: 12px; font-weight: 600; }
-    .route-point-sub { color: #7c95b5; font-size: 12px; margin-top: 2px; }
-    .route-point-time { color: #5f9eff; font-size: 12px; margin-top: 2px; }
-
-    .static-note {
-      margin-top: 10px;
-      color: #7c95b5;
-      font-size: 11px;
-      line-height: 1.45;
+    .intersection-time {
+      color: #5f9eff;
+      font-size: 12px;
+      margin-top: 4px;
     }
 
     .panel-content::-webkit-scrollbar { width: 4px; }
@@ -628,7 +549,6 @@
       .map-top-nav-item { min-width: auto; padding: 0 9px; font-size: 13px; }
       .search-name-row { flex-direction: column; }
       .header-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr 1fr; }
-      .more-menu { right: auto; left: 0; width: 100%; }
     }
   </style>
 </head>
@@ -656,7 +576,7 @@
       </div>
 
       <div class="legend-card">
-        <div class="legend-card-title"><i class="fas fa-map-marker-alt"></i> Популярные точки маршрута</div>
+        <div class="legend-card-title">Легенда</div>
         <div class="legend-row"><span class="legend-dot hot"></span> Высокая концентрация проездов</div>
         <div class="legend-row"><span class="legend-dot normal"></span> Остальные точки маршрута</div>
       </div>
@@ -676,7 +596,6 @@
             <span>•</span>
             <span>5 популярных точек</span>
           </div>
-          <div class="static-note">Фильтры, события и маршруты оставлены как кнопки макета: панели не раскрываются.</div>
         </div>
 
         <div class="header-actions">
@@ -689,16 +608,9 @@
             Фильтры
           </button>
           <div class="more-wrap">
-            <button class="more-toggle" id="moreToggle" type="button" onclick="toggleMoreMenu()" aria-expanded="false">
+            <button class="more-toggle" id="moreToggle" type="button" onclick="activatePopularMode()" aria-label="Популярные точки маршрута" title="Популярные точки маршрута">
               <i class="fas fa-ellipsis-h"></i>
-              Еще
             </button>
-            <div class="more-menu" id="moreMenu">
-              <button class="menu-action" type="button" onclick="activatePopularMode()">
-                <i class="fas fa-map-location-dot"></i>
-                Популярные точки маршрута
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -711,9 +623,6 @@
       <button class="panel-tab disabled" type="button" aria-disabled="true">
         <i class="fas fa-route"></i> Маршруты
       </button>
-      <button class="panel-tab active" type="button">
-        <i class="fas fa-map-location-dot"></i> Точки
-      </button>
     </div>
 
     <div class="panel-content">
@@ -722,19 +631,9 @@
           <i class="fas fa-map-location-dot"></i>
           Популярные точки маршрута
         </div>
-        <div class="popular-subtitle">
-          Выберите точку: список ниже покажет только проезды через нее. Карточки выглядят как маршруты и показывают соседние точки движения.
-        </div>
       </div>
 
       <div class="point-chips" id="pointChips"></div>
-
-      <div class="routes-toolbar">
-        <span id="filteredLabel"><i class="fas fa-filter"></i> Отфильтровано по точке</span>
-        <span id="routesCount"></span>
-      </div>
-
-      <div id="filteredRoutes"></div>
     </div>
   </div>
 </div>
@@ -750,62 +649,67 @@
   const points = [
     {
       id: 'p143',
-      name: 'Точка 53.143899, 50.049745',
+      name: 'Московское шоссе, 18-й километр',
+      area: 'Промышленный район',
       coords: [53.143899, 50.049745],
       passCount: 42,
       hot: true,
-      routes: [
-        { time: '2025-09-20 16:04:33', from: '53.137500, 49.975000', to: '53.152500, 50.068333', duration: '5 мин 36 с', direction: '→' },
-        { time: '2025-09-22 18:35:22', from: '53.152500, 50.068333', to: '53.137500, 49.975000', duration: '5 мин 58 с', direction: '←' },
-        { time: '2025-10-15 18:48:42', from: '53.152500, 50.068333', to: '53.177777, 50.075000', duration: '6 мин 45 с', direction: '→' }
+      intersections: [
+        { time: '2025-09-20 16:04:33', route: 'Московское шоссе -> ул. Авроры', from: 'Московское шоссе, 16-й километр', to: 'ул. Авроры, 110', duration: '5 мин 36 с', direction: '→' },
+        { time: '2025-09-22 18:35:22', route: 'ул. Авроры -> Московское шоссе', from: 'ул. Авроры, 110', to: 'Московское шоссе, 16-й километр', duration: '5 мин 58 с', direction: '←' },
+        { time: '2025-10-15 18:48:42', route: 'Московское шоссе -> Ново-Садовая', from: 'ул. Авроры, 110', to: 'ул. Ново-Садовая, 160', duration: '6 мин 45 с', direction: '→' }
       ]
     },
     {
       id: 'p137',
-      name: 'Точка 53.137500, 49.975000',
+      name: 'Московское шоссе, 16-й километр',
+      area: 'Промышленный район',
       coords: [53.1375, 49.975],
       passCount: 36,
       hot: true,
-      routes: [
-        { time: '2025-09-20 15:58:56', from: '53.119722, 49.939722', to: '53.143899, 50.049745', duration: '2 мин 15 с', direction: '→' },
-        { time: '2025-10-20 09:59:10', from: '53.130000, 49.955555', to: '53.143899, 50.049745', duration: '1 мин 06 с', direction: '→' },
-        { time: '2025-11-12 19:27:51', from: '53.143899, 50.049745', to: '53.091111, 49.963333', duration: '31 мин 30 с', direction: '←' }
+      intersections: [
+        { time: '2025-09-20 15:58:56', route: 'КПП Южный -> Московское шоссе', from: 'КПП Южный', to: 'Московское шоссе, 18-й километр', duration: '2 мин 15 с', direction: '→' },
+        { time: '2025-10-20 09:59:10', route: 'ул. Алма-Атинская -> Московское шоссе', from: 'ул. Алма-Атинская, 72', to: 'Московское шоссе, 18-й километр', duration: '1 мин 06 с', direction: '→' },
+        { time: '2025-11-12 19:27:51', route: 'Московское шоссе -> ул. Гагарина', from: 'Московское шоссе, 18-й километр', to: 'ул. Гагарина, 95', duration: '31 мин 30 с', direction: '←' }
       ]
     },
     {
       id: 'p152',
-      name: 'Точка 53.152500, 50.068333',
+      name: 'ул. Ново-Садовая, 160',
+      area: 'Октябрьский район',
       coords: [53.1525, 50.068333],
       passCount: 35,
       hot: true,
-      routes: [
-        { time: '2025-09-20 16:06:45', from: '53.143899, 50.049745', to: '53.172500, 50.086111', duration: '4 мин 01 с', direction: '→' },
-        { time: '2025-10-13 18:36:10', from: '53.177777, 50.075000', to: '53.143899, 50.049745', duration: '4 мин 32 с', direction: '←' },
-        { time: '2025-11-14 18:15:49', from: '53.187500, 50.080000', to: '53.143899, 50.049745', duration: '7 мин 48 с', direction: '←' }
+      intersections: [
+        { time: '2025-09-20 16:06:45', route: 'Московское шоссе -> Ново-Садовая', from: 'Московское шоссе, 18-й километр', to: 'ул. Ново-Садовая, 210', duration: '4 мин 01 с', direction: '→' },
+        { time: '2025-10-13 18:36:10', route: 'пр. Ленина -> Московское шоссе', from: 'пр. Ленина, 42', to: 'Московское шоссе, 18-й километр', duration: '4 мин 32 с', direction: '←' },
+        { time: '2025-11-14 18:15:49', route: 'ул. Демократическая -> Московское шоссе', from: 'ул. Демократическая, 45', to: 'Московское шоссе, 18-й километр', duration: '7 мин 48 с', direction: '←' }
       ]
     },
     {
       id: 'p187',
-      name: 'Точка 53.187500, 50.080000',
+      name: 'пр. Ленина, 42',
+      area: 'Октябрьский район',
       coords: [53.1875, 50.08],
       passCount: 30,
       hot: false,
-      routes: [
-        { time: '2025-09-23 18:35:39', from: '53.192825, 50.103544', to: '53.177777, 50.075000', duration: '5 мин 28 с', direction: '←' },
-        { time: '2025-10-20 18:47:23', from: '53.177777, 50.075000', to: '53.199166, 50.096944', duration: '1 мин 57 с', direction: '→' },
-        { time: '2025-11-14 09:54:40', from: '53.196111, 50.090555', to: '53.152500, 50.068333', duration: '7 мин 47 с', direction: '←' }
+      intersections: [
+        { time: '2025-09-23 18:35:39', route: 'ул. Осипенко -> пр. Ленина', from: 'ул. Осипенко, 11', to: 'ул. Ново-Садовая, 160', duration: '5 мин 28 с', direction: '←' },
+        { time: '2025-10-20 18:47:23', route: 'Ново-Садовая -> ул. Осипенко', from: 'ул. Ново-Садовая, 160', to: 'ул. Осипенко, 11', duration: '1 мин 57 с', direction: '→' },
+        { time: '2025-11-14 09:54:40', route: 'ул. Демократическая -> Ново-Садовая', from: 'ул. Демократическая, 45', to: 'ул. Ново-Садовая, 160', duration: '7 мин 47 с', direction: '←' }
       ]
     },
     {
       id: 'p203',
-      name: 'Точка 53.203055, 50.138888',
+      name: 'ул. Стара-Загора, 130',
+      area: 'Кировский район',
       coords: [53.203055, 50.138888],
       passCount: 32,
       hot: false,
-      routes: [
-        { time: '2025-09-22 10:28:16', from: '53.199722, 50.130833', to: '53.207500, 50.135555', duration: '1 мин 41 с', direction: '→' },
-        { time: '2025-10-27 10:23:02', from: '53.207500, 50.135555', to: '53.209444, 50.152222', duration: '20 мин 56 с', direction: '→' },
-        { time: '2025-11-12 12:56:59', from: '53.209444, 50.133333', to: '53.207500, 50.135555', duration: '5 мин 00 с', direction: '←' }
+      intersections: [
+        { time: '2025-09-22 10:28:16', route: 'ул. Стара-Загора -> ул. Ташкентская', from: 'ул. Стара-Загора, 118', to: 'ул. Ташкентская, 92', duration: '1 мин 41 с', direction: '→' },
+        { time: '2025-10-27 10:23:02', route: 'ул. Ташкентская -> пр. Кирова', from: 'ул. Ташкентская, 92', to: 'пр. Кирова, 391', duration: '20 мин 56 с', direction: '→' },
+        { time: '2025-11-12 12:56:59', route: 'пр. Кирова -> ул. Ташкентская', from: 'пр. Кирова, 391', to: 'ул. Ташкентская, 92', duration: '5 мин 00 с', direction: '←' }
       ]
     }
   ];
@@ -856,8 +760,8 @@
 
       marker.bindPopup(`
         <strong>${point.name}</strong><br>
-        Число проездов в точке: ${point.passCount}<br>
-        Список справа отфильтрован по этой точке.
+        ${point.area}<br>
+        Число проездов в точке: ${point.passCount}
       `);
       marker.on('click', () => selectPoint(point.id));
     });
@@ -870,93 +774,57 @@
 
   function renderPointChips() {
     const container = document.getElementById('pointChips');
-    container.innerHTML = points
+    container.innerHTML = [...points]
       .sort((a, b) => b.passCount - a.passCount)
       .map((point, index) => `
-        <button class="point-chip ${point.id === selectedPointId ? 'active' : ''}" type="button" onclick="selectPoint('${point.id}')">
-          <span class="point-rank">${index + 1}</span>
-          <span>
-            <span class="point-name">${point.name}</span>
-            <span class="point-coords">${point.coords[0].toFixed(6)}, ${point.coords[1].toFixed(6)}</span>
-          </span>
-          <span class="point-count">${point.passCount}</span>
-        </button>
+        <div class="point-chip ${point.id === selectedPointId ? 'active' : ''}" role="button" tabindex="0" onclick="selectPoint('${point.id}')" onkeydown="handlePointKeydown(event, '${point.id}')">
+          <div class="point-chip-main">
+            <span class="point-rank">${index + 1}</span>
+            <span>
+              <span class="point-name">${point.name}</span>
+              <span class="point-area">${point.area}</span>
+            </span>
+            <span class="point-count">${point.passCount}</span>
+          </div>
+          <div class="point-intersections">
+            <div class="intersection-title"><i class="fas fa-code-branch"></i> Пересечения проездов</div>
+            ${point.intersections.map((intersection, intersectionIndex) => `
+              <div class="intersection-row">
+                <span class="intersection-index">${intersectionIndex + 1}</span>
+                <span>
+                  <span class="intersection-name">${intersection.route}</span>
+                  <span class="intersection-meta">
+                    <span>${intersection.from}</span>
+                    <span>${intersection.direction}</span>
+                    <span>${intersection.to}</span>
+                  </span>
+                  <span class="intersection-time"><i class="far fa-clock"></i> ${intersection.time} · ${intersection.duration}</span>
+                </span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
       `).join('');
-  }
-
-  function renderFilteredRoutes() {
-    const point = points.find(item => item.id === selectedPointId) || points[0];
-    const container = document.getElementById('filteredRoutes');
-
-    document.getElementById('filteredLabel').innerHTML = `<i class="fas fa-filter"></i> Отфильтровано по точке ${point.coords[0].toFixed(6)}, ${point.coords[1].toFixed(6)}`;
-    document.getElementById('routesCount').textContent = `${point.routes.length} маршрута`;
-
-    container.innerHTML = point.routes.map((route, index) => `
-      <div class="route-group-card ${index === 0 ? 'active' : ''}">
-        <div class="route-group-toggle">
-          <span class="route-index">${index + 1}</span>
-          <span class="route-summary">
-            <span class="route-title">
-              <span>Проезд через популярную точку</span>
-              <span>${route.direction}</span>
-            </span>
-            <span class="route-stats">
-              <span>${route.time.slice(0, 10)}</span>
-              <span>${route.time.slice(11)}</span>
-              <span>${route.duration}</span>
-            </span>
-          </span>
-        </div>
-        <div class="route-points">
-          <div class="route-point">
-            <div class="route-point-title">Предыдущая точка маршрута</div>
-            <div class="route-point-sub">${route.from}</div>
-            <div class="route-point-time"><i class="far fa-clock"></i> до ${route.time.slice(11)}</div>
-          </div>
-          <div class="route-point featured">
-            <div class="route-point-title">${point.name}</div>
-            <div class="route-point-sub">Фильтр применен по этой точке, ${point.passCount} проездов</div>
-            <div class="route-point-time"><i class="far fa-clock"></i> ${route.time}</div>
-          </div>
-          <div class="route-point">
-            <div class="route-point-title">Следующая точка маршрута</div>
-            <div class="route-point-sub">${route.to}</div>
-            <div class="route-point-time"><i class="fas fa-route"></i> среднее время отрезка: ${route.duration}</div>
-          </div>
-        </div>
-      </div>
-    `).join('');
   }
 
   function selectPoint(pointId) {
     selectedPointId = pointId;
     renderPointChips();
-    renderFilteredRoutes();
     renderMap();
   }
 
-  function toggleMoreMenu() {
-    const menu = document.getElementById('moreMenu');
-    const button = document.getElementById('moreToggle');
-    menu.classList.toggle('active');
-    button.setAttribute('aria-expanded', menu.classList.contains('active') ? 'true' : 'false');
+  function handlePointKeydown(event, pointId) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      selectPoint(pointId);
+    }
   }
 
   function activatePopularMode() {
-    document.getElementById('moreMenu').classList.remove('active');
-    document.getElementById('moreToggle').setAttribute('aria-expanded', 'false');
     document.querySelector('.popular-header').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  document.addEventListener('click', event => {
-    if (!event.target.closest('.more-wrap')) {
-      document.getElementById('moreMenu').classList.remove('active');
-      document.getElementById('moreToggle').setAttribute('aria-expanded', 'false');
-    }
-  });
-
   renderPointChips();
-  renderFilteredRoutes();
   renderMap();
   window.map = map;
 </script>
