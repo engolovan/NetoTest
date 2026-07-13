@@ -44,7 +44,7 @@
       width: min(1100px, 100%);
       padding: 32px;
       display: grid;
-      grid-template-columns: 480px minmax(280px, 1fr);
+      grid-template-columns: minmax(280px, 1fr) 480px;
       gap: 28px;
       align-items: start;
     }
@@ -147,6 +147,16 @@
       box-shadow: 0 0 0 4px rgba(97, 211, 148, .14);
     }
 
+    .status-dot.offline {
+      background: var(--danger);
+      box-shadow: 0 0 0 4px rgba(255, 107, 107, .14);
+    }
+
+    .status-dot.deleted {
+      background: var(--soft);
+      box-shadow: 0 0 0 4px rgba(127, 138, 150, .16);
+    }
+
     .state-icon {
       width: 28px;
       padding: 0;
@@ -154,8 +164,8 @@
     }
 
     .state-icon.reserve {
-      width: auto;
-      padding-inline: 8px;
+      width: 28px;
+      padding: 0;
       color: #14171a;
       background: var(--warning);
     }
@@ -198,11 +208,17 @@
     .action-button svg,
     .close-button svg,
     .row-action svg,
-    .more-button svg {
+    .more-button svg,
+    .state-icon svg {
       display: block;
       width: 30px;
       height: 30px;
       fill: currentColor;
+    }
+
+    .state-icon svg {
+      width: 17px;
+      height: 17px;
     }
 
     .card-body {
@@ -329,29 +345,36 @@
       box-shadow: 0 18px 42px rgba(0, 0, 0, .45);
     }
 
-    .menu button {
-      width: 100%;
-      padding: 11px 12px;
-      border: 0;
+    .menu-title {
+      padding: 8px 10px 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .menu-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      padding: 10px;
       border-radius: 9px;
-      background: transparent;
       color: var(--text);
-      font: inherit;
       font-size: 14px;
       font-weight: 700;
-      text-align: left;
-      cursor: pointer;
     }
 
-    .menu button:hover {
-      background: rgba(255, 255, 255, .08);
+    .menu-row + .menu-row {
+      margin-top: 3px;
     }
 
-    .menu hr {
-      height: 1px;
-      margin: 8px 4px;
-      border: 0;
-      background: var(--line);
+    .menu-label {
+      color: var(--muted);
+    }
+
+    .menu-value {
+      text-align: right;
     }
 
     .badges {
@@ -375,32 +398,6 @@
 
     .meta-badge.muted {
       color: var(--muted);
-    }
-
-    .special-states {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 22px;
-    }
-
-    .special-state {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      min-height: 34px;
-      padding: 7px 10px;
-      border-radius: 10px;
-      background: #313941;
-      color: #f8fafc;
-      font-size: 13px;
-      font-weight: 800;
-    }
-
-    .special-state .mark {
-      color: var(--warning);
-      font-size: 16px;
-      line-height: 1;
     }
 
     .row-action {
@@ -486,6 +483,41 @@
       font-size: 22px;
     }
 
+    .legend {
+      display: grid;
+      gap: 22px;
+    }
+
+    .legend-section h3 {
+      margin: 0 0 10px;
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .notes .legend-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .legend-item {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 10px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    .legend-item .state-icon,
+    .legend-item .status-pill {
+      justify-self: start;
+    }
+
     .notes ul {
       margin: 0;
       padding-left: 20px;
@@ -512,6 +544,56 @@
 </head>
 <body>
   <main class="stage">
+    <aside class="notes" aria-label="Легенда статусов камеры">
+      <h2>Легенда</h2>
+
+      <div class="legend">
+        <section class="legend-section" aria-label="Статус работы">
+          <h3>Статус работы</h3>
+          <ul class="legend-list">
+            <li class="legend-item">
+              <span class="status-pill"><span class="status-dot"></span></span>
+              <span>Зеленая точка — камера работает</span>
+            </li>
+            <li class="legend-item">
+              <span class="status-pill"><span class="status-dot offline"></span></span>
+              <span>Красная точка — камера не работает</span>
+            </li>
+            <li class="legend-item">
+              <span class="status-pill"><span class="status-dot deleted"></span></span>
+              <span>Серая точка — камера удалена</span>
+            </li>
+          </ul>
+        </section>
+
+        <section class="legend-section" aria-label="Ограничения и резерв">
+          <h3>Ограничения и резерв</h3>
+          <ul class="legend-list">
+            <li class="legend-item">
+              <span class="state-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M7 10V8a5 5 0 0 1 10 0v2h1.5A1.5 1.5 0 0 1 20 11.5v8A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5v-8A1.5 1.5 0 0 1 5.5 10zm2 0h6V8a3 3 0 0 0-6 0z"/>
+                </svg>
+              </span>
+              <span>Замочек — блокировка самой камеры</span>
+            </li>
+            <li class="legend-item">
+              <span class="state-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="m13.8 3 7.2 7.2-1.4 1.4-1.2-1.2-4.5 4.5.6 3.6-1.4 1.4-4-4L4.8 20.2 3.4 18.8l4.3-4.3-4-4 1.4-1.4 3.6.6 4.5-4.5L12 4.4z"/>
+                </svg>
+              </span>
+              <span>Булавка — блокировка положения камеры</span>
+            </li>
+            <li class="legend-item">
+              <span class="state-icon reserve">R</span>
+              <span>R — камера зарезервирована</span>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </aside>
+
     <article class="camera-card" aria-label="Карточка камеры porter_full">
       <section class="video" aria-label="Видео с камеры">
         <div class="drag-handle" title="Перетащить карточку" aria-label="Перетащить карточку">
@@ -519,10 +601,18 @@
         </div>
 
         <div class="status-stack" aria-label="Статусы камеры">
-          <span class="status-pill"><span class="status-dot"></span> Работает</span>
-          <span class="state-icon" title="Камера заблокирована">L</span>
-          <span class="state-icon" title="Положение камеры зафиксировано">P</span>
-          <span class="state-icon reserve" title="Камера зарезервирована">Резерв</span>
+          <span class="status-pill" title="Онлайн"><span class="status-dot"></span></span>
+          <span class="state-icon" title="Камера заблокирована">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 10V8a5 5 0 0 1 10 0v2h1.5A1.5 1.5 0 0 1 20 11.5v8A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5v-8A1.5 1.5 0 0 1 5.5 10zm2 0h6V8a3 3 0 0 0-6 0z"/>
+            </svg>
+          </span>
+          <span class="state-icon" title="Положение камеры зафиксировано">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m13.8 3 7.2 7.2-1.4 1.4-1.2-1.2-4.5 4.5.6 3.6-1.4 1.4-4-4L4.8 20.2 3.4 18.8l4.3-4.3-4-4 1.4-1.4 3.6.6 4.5-4.5L12 4.4z"/>
+            </svg>
+          </span>
+          <span class="state-icon reserve" title="Камера зарезервирована">R</span>
         </div>
 
         <button class="close-button" type="button" aria-label="Закрыть карточку">
@@ -578,29 +668,26 @@
               </svg>
             </summary>
             <div class="menu" role="menu">
-              <button type="button">Настройки камеры</button>
-              <button type="button">Сменить поток</button>
-              <button type="button">Обновить</button>
-              <hr>
-              <button type="button">Разблокировать камеру</button>
-              <button type="button">Разблокировать положение</button>
-              <button type="button">Снять резервирование</button>
-              <hr>
-              <button type="button">Удалить из раскладки</button>
+              <div class="menu-title">Блокировки и резерв</div>
+              <div class="menu-row">
+                <span class="menu-label">Камера</span>
+                <span class="menu-value">заблокирована</span>
+              </div>
+              <div class="menu-row">
+                <span class="menu-label">Положение</span>
+                <span class="menu-value">зафиксировано</span>
+              </div>
+              <div class="menu-row">
+                <span class="menu-label">Резерв</span>
+                <span class="menu-value">активен</span>
+              </div>
             </div>
           </details>
         </header>
 
         <div class="badges" aria-label="Краткие характеристики">
-          <span class="meta-badge primary">Аналитика</span>
           <span class="meta-badge">Внешняя</span>
-          <span class="meta-badge">Удаленная</span>
-          <span class="meta-badge muted">Проекция</span>
-        </div>
-
-        <div class="special-states" aria-label="Активные ограничения">
-          <span class="special-state"><span class="mark">L</span> Камера заблокирована</span>
-          <span class="special-state"><span class="mark">P</span> Положение зафиксировано</span>
+          <span class="meta-badge">Проекция</span>
         </div>
 
         <button class="row-action" type="button" title="Добавить действие" aria-label="Добавить действие">
@@ -630,16 +717,6 @@
       </section>
     </article>
 
-    <aside class="notes" aria-label="Принципы компоновки">
-      <h2>Как разгружена карточка</h2>
-      <ul>
-        <li><strong>Работает / не работает</strong> видно всегда в верхней зоне видео.</li>
-        <li><strong>Внешняя, удаленная, проекция, аналитика</strong> показаны как короткие бейджи под названием.</li>
-        <li><strong>Блокировка, фиксация положения и резерв</strong> видны только как активные индикаторы; изменение этих состояний находится в меню.</li>
-        <li><strong>Частые действия</strong> остаются поверх видео, а редкие операции собраны в кнопку с тремя точками.</li>
-        <li><strong>Адрес, координаты и назначение</strong> остаются в раскрытой информационной области.</li>
-      </ul>
-    </aside>
   </main>
 </body>
 </html>
