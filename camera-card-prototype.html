@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Карточка камеры</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page: #101417;
+      --panel: #252b31;
+      --panel-2: #2b3239;
+      --panel-3: #343c45;
+      --line: #3d4650;
+      --text: #f2f5f7;
+      --muted: #a9b0ba;
+      --soft: #7f8a96;
+      --accent: #6fb6ff;
+      --online: #61d394;
+      --warning: #f1c85b;
+      --danger: #ff6b6b;
+      --shadow: rgba(0, 0, 0, .45);
+      --radius: 15px;
+      font-family: Inter, Roboto, "Segoe UI", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 16% 22%, rgba(58, 125, 70, .2), transparent 30%),
+        radial-gradient(circle at 84% 12%, rgba(80, 122, 180, .16), transparent 26%),
+        linear-gradient(135deg, #101417, #15191e 52%, #0b0d10);
+      color: var(--text);
+    }
+
+    .stage {
+      width: min(1100px, 100%);
+      padding: 32px;
+      display: grid;
+      grid-template-columns: 480px minmax(280px, 1fr);
+      gap: 28px;
+      align-items: start;
+    }
+
+    .camera-card {
+      overflow: hidden;
+      border: 4px solid #343b44;
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: 0 24px 70px var(--shadow);
+    }
+
+    .video {
+      position: relative;
+      height: 318px;
+      background:
+        linear-gradient(rgba(0, 0, 0, .86), rgba(0, 0, 0, .92)),
+        radial-gradient(circle at 60% 44%, rgba(255, 255, 255, .08), transparent 20%),
+        #020202;
+      border-bottom: 1px solid #171a1e;
+    }
+
+    .drag-handle,
+    .close-button,
+    .status-stack,
+    .quick-actions {
+      position: absolute;
+      z-index: 2;
+    }
+
+    .drag-handle {
+      top: 0;
+      left: 0;
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border-bottom-right-radius: 12px;
+      background: rgba(37, 43, 49, .92);
+      cursor: grab;
+    }
+
+    .drag-dots {
+      width: 18px;
+      height: 24px;
+      background-image: radial-gradient(circle, #ffffff 2px, transparent 2.5px);
+      background-size: 8px 8px;
+      opacity: .9;
+    }
+
+    .close-button {
+      top: 0;
+      right: 0;
+      width: 46px;
+      height: 46px;
+      border: 0;
+      border-bottom-left-radius: 12px;
+      background: rgba(37, 43, 49, .92);
+      color: white;
+      font-size: 34px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .status-stack {
+      top: 14px;
+      right: 58px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: calc(100% - 120px);
+      opacity: .98;
+    }
+
+    .status-pill,
+    .state-icon,
+    .meta-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 28px;
+      padding: 5px 9px;
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 999px;
+      background: rgba(37, 43, 49, .88);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+      backdrop-filter: blur(8px);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--online);
+      box-shadow: 0 0 0 4px rgba(97, 211, 148, .14);
+    }
+
+    .state-icon {
+      width: 28px;
+      padding: 0;
+      color: #fff;
+    }
+
+    .state-icon.reserve {
+      width: auto;
+      padding-inline: 8px;
+      color: #14171a;
+      background: var(--warning);
+    }
+
+    .quick-actions {
+      left: 32px;
+      right: 32px;
+      bottom: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      opacity: .9;
+      transition: opacity .16s ease, transform .16s ease;
+    }
+
+    .camera-card:not(:hover) .quick-actions {
+      opacity: .72;
+    }
+
+    .action-button {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: #fff;
+      cursor: pointer;
+      transition: background .16s ease, transform .16s ease;
+    }
+
+    .action-button:hover,
+    .action-button:focus-visible {
+      background: rgba(255, 255, 255, .11);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .action-button svg,
+    .close-button svg,
+    .row-action svg,
+    .more-button svg {
+      display: block;
+      width: 30px;
+      height: 30px;
+      fill: currentColor;
+    }
+
+    .card-body {
+      position: relative;
+      padding: 20px 30px 28px;
+      background: var(--panel);
+    }
+
+    .camera-heading {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .title-row {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .camera-kind {
+      position: relative;
+      width: 26px;
+      height: 22px;
+      flex: 0 0 auto;
+    }
+
+    .camera-kind::before {
+      content: "";
+      position: absolute;
+      left: 2px;
+      bottom: 0;
+      width: 22px;
+      height: 12px;
+      border-radius: 9px 9px 3px 3px;
+      background: #fff;
+    }
+
+    .camera-kind::after {
+      content: "";
+      position: absolute;
+      left: 8px;
+      top: 0;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    .kind-alert {
+      position: absolute;
+      right: -4px;
+      bottom: 2px;
+      color: #fff;
+      font-size: 20px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .chevron {
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 7px solid var(--soft);
+      flex: 0 0 auto;
+    }
+
+    h1 {
+      overflow: hidden;
+      margin: 0;
+      color: var(--text);
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: .01em;
+      line-height: 1.12;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .subtitle {
+      margin: 12px 0 0 50px;
+      color: var(--muted);
+      font-size: 19px;
+      font-weight: 700;
+    }
+
+    .more {
+      position: relative;
+    }
+
+    .more summary {
+      list-style: none;
+    }
+
+    .more summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .more-button {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 12px;
+      background: var(--panel-2);
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .menu {
+      position: absolute;
+      top: 46px;
+      right: 0;
+      z-index: 6;
+      width: 250px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #1f252b;
+      box-shadow: 0 18px 42px rgba(0, 0, 0, .45);
+    }
+
+    .menu button {
+      width: 100%;
+      padding: 11px 12px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .menu button:hover {
+      background: rgba(255, 255, 255, .08);
+    }
+
+    .menu hr {
+      height: 1px;
+      margin: 8px 4px;
+      border: 0;
+      background: var(--line);
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 22px 0 24px;
+    }
+
+    .meta-badge {
+      min-height: 30px;
+      color: #dce3ea;
+      background: var(--panel-2);
+    }
+
+    .meta-badge.primary {
+      border-color: rgba(111, 182, 255, .3);
+      color: #eaf5ff;
+      background: rgba(111, 182, 255, .16);
+    }
+
+    .meta-badge.muted {
+      color: var(--muted);
+    }
+
+    .special-states {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 22px;
+    }
+
+    .special-state {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 7px 10px;
+      border-radius: 10px;
+      background: #313941;
+      color: #f8fafc;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .special-state .mark {
+      color: var(--warning);
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .row-action {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      margin: 2px 0 30px;
+      border: 3px solid #fff;
+      border-radius: 50%;
+      background: transparent;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .details {
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      display: grid;
+      gap: 18px;
+    }
+
+    .detail-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: start;
+      color: var(--text);
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1.18;
+    }
+
+    .detail-label {
+      color: var(--muted);
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .copy-button {
+      width: 26px;
+      height: 26px;
+      display: inline-grid;
+      place-items: center;
+      margin-left: 8px;
+      border: 0;
+      background: transparent;
+      color: #fff;
+      vertical-align: middle;
+      cursor: pointer;
+    }
+
+    .copy-icon {
+      position: relative;
+      width: 15px;
+      height: 18px;
+      border: 2px solid currentColor;
+      border-radius: 2px;
+    }
+
+    .copy-icon::before {
+      content: "";
+      position: absolute;
+      top: -5px;
+      left: -5px;
+      width: 15px;
+      height: 18px;
+      border: 2px solid currentColor;
+      border-radius: 2px;
+      background: var(--panel);
+    }
+
+    .notes {
+      padding: 24px;
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 20px;
+      background: rgba(37, 43, 49, .72);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, .26);
+    }
+
+    .notes h2 {
+      margin: 0 0 16px;
+      font-size: 22px;
+    }
+
+    .notes ul {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    .notes strong {
+      color: var(--text);
+    }
+
+    @media (max-width: 860px) {
+      .stage {
+        grid-template-columns: 1fr;
+        padding: 18px;
+      }
+
+      .camera-card {
+        max-width: 480px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <article class="camera-card" aria-label="Карточка камеры porter_full">
+      <section class="video" aria-label="Видео с камеры">
+        <div class="drag-handle" title="Перетащить карточку" aria-label="Перетащить карточку">
+          <span class="drag-dots" aria-hidden="true"></span>
+        </div>
+
+        <div class="status-stack" aria-label="Статусы камеры">
+          <span class="status-pill"><span class="status-dot"></span> Работает</span>
+          <span class="state-icon" title="Камера заблокирована">L</span>
+          <span class="state-icon" title="Положение камеры зафиксировано">P</span>
+          <span class="state-icon reserve" title="Камера зарезервирована">Резерв</span>
+        </div>
+
+        <button class="close-button" type="button" aria-label="Закрыть карточку">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+          </svg>
+        </button>
+
+        <div class="quick-actions" aria-label="Быстрые действия">
+          <button class="action-button" type="button" title="Пауза" aria-label="Пауза">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 5h4v14H6zm8 0h4v14h-4z"/>
+            </svg>
+          </button>
+          <button class="action-button" type="button" title="Обновить поток" aria-label="Обновить поток">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18.7 7.4A8 8 0 1 0 20 12h-2.3a5.7 5.7 0 1 1-1.1-3.3L13 12.3h8V4.4z"/>
+            </svg>
+          </button>
+          <button class="action-button" type="button" title="Сменить поток" aria-label="Сменить поток">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M19.4 13.5v-3l2-1.5V6.7l-3.3 2.5H14v5.6h4.1l3.3 2.5V15zM3 5h9v2H3zm0 6h9v2H3zm0 6h9v2H3z"/>
+            </svg>
+          </button>
+          <button class="action-button" type="button" title="Звук выключен" aria-label="Звук выключен">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 9v6h4l5 4V5L7 9zm13.8 3 3.1-3.1-1.4-1.4-3.1 3.1-3.1-3.1-1.4 1.4L14 12l-3.1 3.1 1.4 1.4 3.1-3.1 3.1 3.1 1.4-1.4z"/>
+            </svg>
+          </button>
+          <button class="action-button" type="button" title="На весь экран" aria-label="На весь экран">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 5h7v2H6v5H4zm9 0h7v7h-2V7h-5zM6 13v5h5v2H4v-7zm12 5v-5h2v7h-7v-2z"/>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <section class="card-body">
+        <header class="camera-heading">
+          <div>
+            <div class="title-row">
+              <span class="camera-kind" aria-hidden="true"><span class="kind-alert">!</span></span>
+              <span class="chevron" aria-hidden="true"></span>
+              <h1>porter_full</h1>
+            </div>
+            <p class="subtitle">Самара</p>
+          </div>
+
+          <details class="more">
+            <summary class="more-button" aria-label="Открыть меню действий">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>
+              </svg>
+            </summary>
+            <div class="menu" role="menu">
+              <button type="button">Настройки камеры</button>
+              <button type="button">Сменить поток</button>
+              <button type="button">Обновить</button>
+              <hr>
+              <button type="button">Разблокировать камеру</button>
+              <button type="button">Разблокировать положение</button>
+              <button type="button">Снять резервирование</button>
+              <hr>
+              <button type="button">Удалить из раскладки</button>
+            </div>
+          </details>
+        </header>
+
+        <div class="badges" aria-label="Краткие характеристики">
+          <span class="meta-badge primary">Аналитика</span>
+          <span class="meta-badge">Внешняя</span>
+          <span class="meta-badge">Удаленная</span>
+          <span class="meta-badge muted">Проекция</span>
+        </div>
+
+        <div class="special-states" aria-label="Активные ограничения">
+          <span class="special-state"><span class="mark">L</span> Камера заблокирована</span>
+          <span class="special-state"><span class="mark">P</span> Положение зафиксировано</span>
+        </div>
+
+        <button class="row-action" type="button" title="Добавить действие" aria-label="Добавить действие">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/>
+          </svg>
+        </button>
+
+        <dl class="details">
+          <div class="detail-row">
+            <dt class="detail-label">53.166717, 50.13226</dt>
+            <dd>
+              <button class="copy-button" type="button" aria-label="Скопировать координаты">
+                <span class="copy-icon" aria-hidden="true"></span>
+              </button>
+            </dd>
+          </div>
+          <div class="detail-row">
+            <dt class="detail-label">Адрес</dt>
+            <dd>Лютиковая<br>площадь</dd>
+          </div>
+          <div class="detail-row">
+            <dt class="detail-label">Назначение</dt>
+            <dd>стараяООО</dd>
+          </div>
+        </dl>
+      </section>
+    </article>
+
+    <aside class="notes" aria-label="Принципы компоновки">
+      <h2>Как разгружена карточка</h2>
+      <ul>
+        <li><strong>Работает / не работает</strong> видно всегда в верхней зоне видео.</li>
+        <li><strong>Внешняя, удаленная, проекция, аналитика</strong> показаны как короткие бейджи под названием.</li>
+        <li><strong>Блокировка, фиксация положения и резерв</strong> видны только как активные индикаторы; изменение этих состояний находится в меню.</li>
+        <li><strong>Частые действия</strong> остаются поверх видео, а редкие операции собраны в кнопку с тремя точками.</li>
+        <li><strong>Адрес, координаты и назначение</strong> остаются в раскрытой информационной области.</li>
+      </ul>
+    </aside>
+  </main>
+</body>
+</html>
