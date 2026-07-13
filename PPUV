@@ -1,0 +1,2728 @@
+# Федерация ППУВ — критерии приёмки (сводно по итерациям 1–3)
+
+> **Обновлено:** 2026-07-03 · **Ветка:** `feature/NP-11983/federation`
+> **Источник статусов:** чеклисты [ITERATION_1](iterations/ITERATION_1.md) (F0–F8), [ITERATION_2](iterations/ITERATION_2.md), [ITERATION_3](iterations/ITERATION_3.md) + независимый code-review ([FEDERATION_REVIEW.md](review/FEDERATION_REVIEW.md), findings F1–F9).
+> **Первоисточник требований:** [hld.md](architecture/hld.md) (US.PPUV.*, UC-PPUV-*). HLD — ориентир по сути; расхождения зафиксированы в [FEDERATION_REVIEW §15](review/FEDERATION_REVIEW.md#15-зафиксированные-решения).
+
+Единый документ приёмки: каждая возможность → критерии (Given/When/Then) → статус. Предназначен для QA/PO для sign-off и для планирования оставшихся работ.
+
+## Легенда статусов
+
+| Статус | Значение |
+|--------|----------|
+| ✅ | Реализовано в коде + покрыто unit/integration |
+| 🟢 | Реализовано в коде; **приёмка = E2E на двух стендах** ещё не подтверждена |
+| 🟡 | Частично / с оговоркой |
+| ❌ | Не реализовано |
+| ⏳ | Осознанно отложено (не блокирует MVP) |
+
+> **Ключевой приёмочный шлюз:** для backend-возможностей со статусом 🟢 «done в коде» ≠ «принято». Финальная приёмка — прогон E2E на **двух независимых инсталляциях** (СРВИ + регион) из [раздела L](#l-приёмочные-прогоны-e2e--регресс). Сейчас на стенде подтверждено 15/15 integration в режиме `PeerFgs`, но значительная часть E2E-сценариев по операциям ППУВ на стенде **не прогонялась** (см. L).
+
+## Сводка готовности
+
+| Область | Backend | Frontend | E2E на стенде | Итог |
+|---------|---------|----------|---------------|------|
+| A. Инварианты / REG-OFF | ✅ | — | 🟡 частично | 🟡 |
+| B. Каталог и происхождение | ✅ | ❌ | 🟡 | 🟡 |
+| C. StreamBlock (спецрежим) | ✅ | ❌ | 🟢 acquire/release | 🟡 |
+| D. Перехват PTZ | ✅ | ❌ | ❌ | 🟡 |
+| E. Archive-lock + extract/RFM | 🟡 | ❌ | ❌ | 🟡 |
+| F. Reserve / FullCopy | 🟡 | ❌ | 🟢 create | 🟡 |
+| G. Массовая блокировка (lasso) | ✅ | ❌ | ❌ | 🟡 |
+| H. Скрытность аудита | 🟡 | — | ❌ | 🟡 |
+| I. Транспорт PeerFgs (iter 3) | ✅ | 🟡 admin | 🟢 15/15 | 🟢 |
+| J. Безопасность S2S | 🟡 | — | ❌ | 🟡 |
+| K. Наблюдаемость / эксплуатация | 🟡 | — | — | 🟡 |
+| L. Приёмочные прогоны | — | — | 🟡 | 🟡 |
+
+**Главные незакрытые области:** (1) **весь Frontend** федерации (F3, iter2-preview, iter3-admin UI); (2) **E2E на стенде** по большинству операций ППУВ; (3) **наблюдаемость/reconciliation/runbook**; (4) inbound **аудит и rate-limit**.
+
+---
+
+## A. Общие инварианты и отключение (REG-OFF)
+
+| ID | Критерий (Given/When/Then) | US/UC | Статус |
+|----|---------------------------|-------|--------|
+| AC-A1 | Дано `FEDERATION` не лицензирована / `Federation:Enabled=false`. Когда идёт локальный live/PPUV/RFM. Тогда поведение идентично до-federation, FGS не в readiness-пути. | инвариант | 🟢 (unit; REG-01…08 на стенде ❌) |
+| AC-A2 | Дано `OriginType=Local`. Когда acquire Ptz/StreamBlock/Archive. Тогда RSM **не** вызывает FGS. | инвариант | ✅ |
+| AC-A3 | Дано FGS остановлен, `Enabled=false`. Когда работают RSM/SB/ENM. Тогда локальные операции успешны, нет спама ошибок клиента FGS. | REG-05/06 | 🟢 (E2E на стенде ❌) |
+| AC-A4 | Дано федерация включена, но EM недоступен. Когда ППУВ блокирует камеру. Тогда операция **отклоняется** (`FEDERATION_ORIGIN_UNRESOLVED`), а не деградирует в локальную (fail-closed). | code-review **F1** | ✅ (fail-closed + тесты) |
+| AC-A5 | Дано `/federation/*` без license feature `FEDERATION`. Когда запрос через gateway. Тогда `403 FederationFeatureNotLicensed`. | — | ✅ |
+
+---
+
+## B. Каталог и происхождение камер
+
+| ID | Критерий | US/UC | Статус |
+|----|----------|-------|--------|
+| AC-B1 | Камеры региона появляются в каталоге ENM СРВИ как `FederatedProjection` с `regionId/externalCameraId/syncStatus`. | HLD §1.7 | ✅ backend |
+| AC-B2 | Delta-sync по расписанию (paging, rate limit, jitter); удалённая камера → `Stale`. | iter1 F2 | ✅ backend (E2E-03/04 ❌) |
+| AC-B3 | Иерархия/теги региона зеркалируются под корнем «Регион X» с указанием источника. | iter1 F2 | ✅ backend |
+| AC-B4 | Projection stream не участвует в local stream management; `AvailableStreams` возвращается для отрисовки. | iter1 F2 | ✅ backend |
+| AC-B5 | Фильтр `federationRegionId` / `federationOriginTypes[]` в geo-search/gallery. | iter1 F2 | ✅ backend |
+| AC-B6 | **UI:** origin-badge на карточке/списке/карте/timeline/журнале; фильтр по источнику; дерево регионов; теги с источником; обработка `Stale/SyncError`; скрытие federation-UI без лицензии. | iter1 **F3** | ❌ **не реализовано** |
+
+---
+
+## C. Блокировка камеры (StreamBlock / спецрежим)
+
+| ID | Критерий | US/UC | Статус |
+|----|----------|-------|--------|
+| AC-C1 | ППУВ на СРВИ включает блокировку с TTL; RSM создаёт StreamBlock-lease; для federated — S2S в регион. | US.PPUV.1.1, UC-PPUV-01 | 🟢 (E2E-30/31 ✅ на стенде) |
+| AC-C2 | StreamBlock создаёт **связанный Archive-lease** для **любой** камеры (local СРВИ + federated projection + inbound), журнал СРВИ = две записи. | UC-PPUV-01 п.16, code-review **F5** | ✅ (вариант B + тест) |
+| AC-C3 | Для ППУВ live и запись реальны; для гражданского региона — заглушка/live-off, архив за период скрыт. | §1.6 | 🟡 backend-логика ✅; визуально на стенде ❌ |
+| AC-C4 | Снятие блокировки владельцем или `admin:ppuv`; по TTL — авто-expiry; remote release через FGS. | US.PPUV.1.6 | 🟢 (E2E-31b «архив остаётся скрыт после release» ❌) |
+| AC-C5 | При ошибке S2S lease → «Ошибка», гражданский контур не меняется; remote lock TTL-safety. | UC-PPUV-01 искл.1 | 🟡 reject-путь ✅; TTL-reconciler ❌ (см. K) |
+| AC-C6 | Идемпотентность: повторный acquire с тем же ключом не создаёт второй lease. | iter1 F5 | ✅ (RSM дедуп по `IdempotencyKey`, code-review F2) |
+| AC-C7 | **UI:** тумблер блокировки + выбор TTL + иконка/таймер на превью. | US.PPUV.1.1/1.2 | ❌ |
+| AC-C8 | Подмена камеры в раскладке соседней (toggle-фича, по умолчанию OFF). | US.PPUV.1.3, LAYOUT-01 | ⏳ отложено (mini-HLD + UI) |
+
+---
+
+## D. Перехват управления PTZ
+
+| ID | Критерий | US/UC | Статус |
+|----|----------|-------|--------|
+| AC-D1 | ППУВ на СРВИ перехватывает PTZ федеративной камеры; regional RSM `Ptz` lock от service-principal; сессия гражданского сброшена. | US.PPUV.1.4, UC-PPUV-02 | 🟢 backend ✅ (E2E-32 ❌) |
+| AC-D2 | Regional fencing token авторитетен; user identity СРВИ в регион не проходит (только correlation). | iter1 F6 | ✅ backend |
+| AC-D3 | Гражданскому региона — уведомление о перехвате; равный приоритет → `409 RESOURCE_BUSY`. | US.PPUV.1.7, UC-PPUV-02 alt.1 | 🟢 backend ✅ (E2E ❌) |
+| AC-D4 | **UI:** кнопка перехвата, активация джойстика, сообщение о занятости. | UC-PPUV-02 | ❌ |
+
+---
+
+## E. Блокировка архива, изъятие в RFM
+
+| ID | Критерий | US/UC | Статус |
+|----|----------|-------|--------|
+| AC-E1 | Логическая Archive-lock на интервал; для гражданского «дыра» на таймлайне, live не затронут; снятие возвращает доступ. | US.PPUV.2.1/2.3, UC-PPUV-04 | 🟡 lease/S2S ✅; **фильтрация timeline/HLS/export на регионе** — наследует PPUV-логику, отдельно не подтверждено (iter1 F7 ❌) |
+| AC-E2 | Пересечение с ранее скрытым интервалом → операция блокируется. | UC-PPUV-04 искл.1 | 🟡 требует подтверждения на стенде |
+| AC-E3 | Физическая блокировка/изъятие: extract на regional SB → signed temp URL → импорт в RFM СРВИ как обычный `MediaItem`; retry. | US.PPUV.2.2, UC-PPUV-04 alt.1 | 🟢 backend ✅ (E2E-40…42 ❌) |
+| AC-E4 | Технический origin хранится в FGS job/audit (не в user-facing RFM metadata). | iter1 F7 | ✅ |
+| AC-E5 | **UI:** выбор интервала + меню «Скрыть/Изъять/Сохранить копию»; прогресс. | UC-PPUV-04 | ❌ |
+
+---
+
+## F. Резервирование и полная копия
+
+| ID | Критерий | US/UC | Статус |
+|----|----------|-------|--------|
+| AC-F1 | Ручной reserve (`localCameraId`+`localVideoServerId`): параллельная запись на MSS СРВИ без скрытия live; lifecycle create/disable/delete. | US.PPUV.2.4 | 🟢 (E2E-50/53 ✅ create/disable) |
+| AC-F2 | Fallback playback на reserve при недоступности региона. | iter1 F8 | 🟢 unit ✅ (E2E-52 ❌) |
+| AC-F3 | FullCopy (`FederatedCopy`): interim playback через regional proxy (`UseRegionalProxyForLiveSource=true`); lifecycle. | US.PPUV.2.5 | 🟢 (E2E-51 ✅ create/playback) |
+| AC-F4 | FullCopy MSS: регистрация потоков на локальном Nimble. | iter1 F8 | ❌ follow-up |
+| AC-F5 | `retentionSeconds` reserve → `DvrMaxDuration` в provisioner (сейчас hardcoded 86400). | iter1 F8 | ❌ gap |
+| AC-F6 | Snapshot/preview через регион с кешем на СРВИ. | iter1 F4 | ❌ |
+| AC-F7 | Partial timeline/warning при пересечении remote/local reserve segments. | iter1 F4 | ❌ |
+
+---
+
+## G. Массовая блокировка с карты (lasso)
+
+| ID | Критерий | US/UC | Статус |
+|----|----------|-------|--------|
+| AC-G1 | Backend резолвит фигуру (`geo-search-resolve`) сам; UI не извлекает cameraId из кластеров. | US.PPUV.1.5, iter2 | ✅ backend |
+| AC-G2 | Preview до submit: `totalCameras`, `summary.byRegion`, `exceedsLassoLimit`; лимит 50. | UC-PPUV-03 | ✅ backend |
+| AC-G3 | Batch job покамерно: acquire/reject/preempt; `regionSummary[]`; partial success. | UC-PPUV-03 | ✅ backend (группировка federated по региону — опционально ❌) |
+| AC-G4 | Массовая разблокировка области (владелец / `admin:ppuv`). | US.PPUV.1.6 | 🟢 backend |
+| AC-G5 | **UI:** preview modal, `durationSeconds`, grouped status. | iter2 frontend | ❌ |
+| AC-G6 | E2E I2-07/I2-08 (mixed-region lasso) на стенде. | iter2 | ❌ |
+
+---
+
+## H. Скрытность операций ППУВ в аудите
+
+| ID | Критерий | US/UC | Статус |
+|----|----------|-------|--------|
+| AC-H1 | Действия ППУВ полностью в аудите СРВИ; inbound на регионе — `IsCovert=true`, без следа для регионального пользователя. | US.PPUV.4.1, UC-PPUV-09 | 🟡 covert-flag ✅; сквозная проверка «нет следа в аудите региона» на стенде ❌ |
+| AC-H2 | **Аудит inbound-операций на regional FGS** (техническая запись для troubleshooting, только superadmin). | iter3 §6 | ❌ не реализовано |
+| AC-H3 | Технический federation-audit виден только superadmin. | iter1 audit | ✅ (iter 7, шаг 6): `audit-service` — covert-записи сохраняются с `IsCovert=true`, исключены из обычных выборок, доступны только через `GET /api/v1/audit/covert` под политикой `Ppuv:Admin`. См. [FEDERATION_REVIEW.md F20](review/FEDERATION_REVIEW.md#18-дополнительные-findings-зоны-из-16) |
+
+---
+
+## I. Транспорт PeerFgs (iter 3)
+
+| ID | Критерий | US/UC | Статус |
+|----|----------|-------|--------|
+| AC-I1 | `Federation:Outbound:Mode=PeerFgs` — production default; единственная внешняя точка = `federationGatewayBaseUrl`. | iter3 | ✅ |
+| AC-I2 | Regional FGS маршрутизирует inbound → ENM/RSM/SB/DCS (`InternalRouting`), без утечки топологии на СРВИ. | iter3 | ✅ |
+| AC-I3 | ~~`DirectServices` сохраняется как rollback при явной установке.~~ | iter3 I3-04 | 🚫 **Снят (iter 7/D2)** — `DirectServices` полностью удалён из кода вместе с прямыми URL Installation; peer FGS — единственная топология |
+| AC-I4 | Installation create: обязателен только `federationGatewayBaseUrl` (autofill direct URL удалён вместе с DirectServices, iter 7/D2). | iter3 | ✅ |
+| AC-I5 | Probe FGS `Reachable=true`; full E2E locks+playback+catalog через peer-only. | I3-02/06 | 🟢 15/15 integration |
+| AC-I6 | Firewall: снаружи только `:8132` (+ token). | I3-03 | ❌ ops/инфра |
+| AC-I7 | Regional FGS down → СРВИ `RegionUnavailable`, local ops OK. | I3-05 | 🟡 логика есть, автотест ❌ |
+| AC-I8 | **UI admin:** одно поле `federationGatewayBaseUrl` + OAuth. | iter3 §8 | ❌ |
+
+---
+
+## J. Безопасность S2S
+
+| ID | Критерий | US/UC | Статус |
+|----|----------|-------|--------|
+| AC-J1 | Outbound mTLS (client cert + thumbprint pin); `AllowedNetworks` allowlist (флаг enforcement). | SEC-*, iter1 F1 | ✅ backend |
+| AC-J2 | **Secure-by-default inbound (iter 6):** license `FEDERATION` + Bearer JWT с `federation:inbound` + валидный `X-Federation-Source-Installation-Id`; опционально mTLS. Без валидного JWT — 401/403. См. [ITERATION_6.md](iterations/ITERATION_6.md). | code-review **F4** (superseded), iter6 | ✅ (+ тесты) |
+| AC-J3 | **Подпись тела S2S-запроса** (HMAC/JWS) — целостность на уровне приложения при проксировании. | HLD §1.7 | ❌ **iter 2 (отдельная задача)** |
+| AC-J4 | Rate limiting / circuit breaker на peer. | iter3 §6 | ❌ |
+| AC-J5 | Ротация client secret/cert thumbprint через admin API (авторотация не обязательна для v1). | iter1 ops | 🟡 модель есть; runbook — [S2S_CERTIFICATES_AND_MTLS.md](guides/S2S_CERTIFICATES_AND_MTLS.md) |
+
+---
+
+## K. Наблюдаемость и эксплуатация
+
+| ID | Критерий | Статус |
+|----|----------|--------|
+| AC-K1 | Health per region в FGS (installation probe). | ✅ |
+| AC-K2 | Метрики: S2S latency, sync lag, remote lock failures, transfer jobs, drift count. | ❌ future |
+| AC-K3 | **Reconciliation worker** (local/remote lock drift). | ❌ (code-review **F3** вариант C) |
+| AC-K4 | **TTL-safety для remote locks** (авто-снятие осиротевших). | ❌ (code-review F3) |
+| AC-K5 | Retention-очистка таблицы идемпотентности S2S. | ✅ (code-review **F8**) |
+| AC-K6 | Runbook: cert rotation, region outage, stuck transfer/lock. | 🟡 cert — [S2S_CERTIFICATES_AND_MTLS.md](guides/S2S_CERTIFICATES_AND_MTLS.md); остальное ❌ |
+
+---
+
+## L. Приёмочные прогоны (E2E / регресс)
+
+Финальный шлюз приёмки. Отмечено по [ITERATION_1 §Testing](iterations/ITERATION_1.md) и integration-suite. **E2E операций ППУВ (31b, 32, 33, 34–36, 40–42) вынесены в [ITERATION_4](iterations/ITERATION_4.md).**
+
+| ID | Сценарий | Статус |
+|----|----------|--------|
+| E2E-01/02 | peer registration + health; catalog sync | ✅ |
+| E2E-03/04 | delta sync, stale camera | ❌ |
+| E2E-10/11 | gallery-filter projection + availableStreams | ✅ |
+| E2E-20/22/23 | signed live URL; archive segments; StreamBlock + PPUV bypass | ✅ (23 — ручной+unit) |
+| E2E-30/31 | StreamBlock federated acquire + release | ✅ |
+| E2E-31b | release StreamBlock → архив остаётся скрыт для гражданского | ❌ |
+| E2E-32 | PTZ preemption regional | ❌ |
+| E2E-33 | remote Archive lock | ❌ |
+| E2E-34/35/36 | batch / lasso locks | ❌ |
+| E2E-40…42 | remote extract → RFM СРВИ | ❌ |
+| E2E-50/53 / 51 | reserve create/disable; FullCopy create/playback | ✅ |
+| E2E-52 / 54 | reserve fallback при outage; retention window | ❌ |
+| I2-07/08 | lasso mixed-region preview + execute | ❌ |
+| I3-03/05 | firewall один порт; RegionUnavailable автотест | ❌ |
+| REG-01…08 | регресс `FEDERATION=off`: local playback/PPUV/RFM | ❌ |
+| REG-05/06 | FGS down не ломает local | ❌ |
+| Load / Chaos | 10k проекций, polling, batch 50; S2S timeout, lost ACK, outage | ❌ later |
+
+---
+
+## Сводный список НЕ реализованного (по приоритету)
+
+**P0 — блокирует функциональную приёмку фичи:**
+1. **Frontend федерации целиком** — origin-badges, фильтр по источнику, дерево регионов, теги с источником, обработка `Stale`, скрытие UI без лицензии (iter1 F3); admin-UI peer (iter3); lasso preview (iter2). *(кандидат в отдельную UI-итерацию)*
+2. **E2E на двух стендах** по операциям ППУВ: PTZ preempt (E2E-32), remote Archive-lock (E2E-33), batch/lasso (E2E-34…36), extract→RFM (E2E-40…42), release-архив-остаётся-скрыт (E2E-31b). → **вынесено в [ITERATION_4](iterations/ITERATION_4.md)**.
+3. **Регресс `FEDERATION=off`** (REG-01…08, REG-05/06) — гарантия невредимости одиночной установки. → рекомендовано в DoD [ITERATION_4 §6](iterations/ITERATION_4.md).
+
+**P1 — важно до продакшена:**
+4. Archive-lock: подтвердить фильтрацию timeline/HLS/export на регионе (AC-E1).
+5. Скрытность аудита: сквозной E2E «нет следа в регионе» (AC-H1) + inbound-аудит (AC-H2).
+6. Безопасность S2S: подпись тела (AC-J3), rate-limit/circuit-breaker (AC-J4).
+7. Наблюдаемость: reconciliation worker + TTL-safety осиротевших remote-lock (AC-K3/K4, code-review F3 вариант C).
+
+**P2 — follow-up / отложенное:**
+8. FullCopy MSS register on local Nimble (AC-F4); `retentionSeconds`→DvrMaxDuration (AC-F5); snapshot/preview cache (AC-F6); partial-timeline warning (AC-F7).
+9. Метрики (AC-K2), runbook outage/stuck (AC-K6), firewall single-port (AC-I6).
+10. ⏳ Layout substitution (подмена камеры в раскладке) — отдельный mini-HLD + UI (AC-C8).
+
+---
+
+*Статусы «🟢 backend готов» переводятся в «✅ принято» после прохождения соответствующего E2E из раздела L на двух независимых инсталляциях. При закрытии пунктов — обновлять сводку готовности и раздел L.*
+
+
+# Федерация ППУВ — гайд для backend
+
+> **Статус:** рабочая документация · **Обновлено:** 2026-07-05 · **Итерация:** peer FGS — единственная топология outbound (iter 3 default, `DirectServices` удалён в iter 7/D2); iter 2 — [ITERATION_2.md](../iterations/ITERATION_2.md); iter 3 — [ITERATION_3.md](../iterations/ITERATION_3.md); iter 6 inbound — [ITERATION_6.md](../iterations/ITERATION_6.md); iter 7 — [ITERATION_7.md](../iterations/ITERATION_7.md)  
+> **Аудитория:** backend-разработчики  
+> **Связанные документы:** [OVERVIEW.md](../architecture/OVERVIEW.md) · [FRONTEND.md](FRONTEND.md) · [S2S_CERTIFICATES_AND_MTLS.md](S2S_CERTIFICATES_AND_MTLS.md) · [TESTING.md](../testing/TESTING.md) · [ITERATION_1.md](../iterations/ITERATION_1.md)
+
+Практическое руководство: роли сервисов, API, конфигурация, code paths, паттерны разработки.
+
+---
+
+## Оглавление
+
+1. [Документация и структура репозитория](#1-документация-и-структура-репозитория)
+2. [Роли сервисов](#2-роли-сервисов)
+3. [Контуры вызовов](#3-контуры-вызовов)
+4. [Origin model](#4-origin-model)
+5. [API по сервисам](#5-api-по-сервисам)
+6. [Catalog sync](#6-catalog-sync)
+7. [Federated lock flow](#7-federated-lock-flow)
+8. [Geo resolve и lasso](#8-geo-resolve-и-lasso)
+9. [Archive extract → RFM](#9-archive-extract--rfm)
+10. [Конфигурация и compose](#10-конфигурация-и-compose)
+    - [10.5. Справочник `Federation:*`](#105-справочник-federation)
+11. [Где искать код](#11-где-искать-код)
+12. [Паттерны для новых фич](#12-паттерны-для-новых-фич)
+13. [Чеклист PR](#13-чеклист-pr)
+14. [Backlog](#14-backlog)
+
+---
+
+## 1. Документация и структура репозитория
+
+```text
+federation-gateway/features/federation/
+├── README.md
+├── guides/
+│   ├── FRONTEND.md      ← контракты для UI
+│   └── BACKEND.md       ← этот файл
+├── architecture/
+│   ├── OVERVIEW.md
+│   ├── PLAN.md
+│   └── hld.md
+├── iterations/
+│   ├── ITERATION_1.md   ← MVP checklist
+│   ├── ITERATION_2.md   ← geo-search-resolve, lasso
+│   └── ITERATION_3.md   ← peer FGS (PeerFgs), internal routing
+└── testing/
+    └── TESTING.md
+```
+
+---
+
+## 2. Роли сервисов
+
+| Сервис | Роль в федерации |
+|--------|------------------|
+| **FGS** | Registry регионов, catalog sync, S2S к peer, оркестрация remote locks/PTZ/archive/extract/media plans |
+| **RSM** | Control-plane locks на СРВИ; federated origin → HTTP client в FGS |
+| **ENM** | Локальный каталог + projections; `geo-search-resolve` + internal resolve для RSM |
+| **SB** | Playback negotiation; federated path через FGS |
+| **DCS** | PTZ на регионе (через FGS forwarding) |
+| **RFM** | Конечный `MediaItem` после extract import на СРВИ |
+| **MSS** | Reserve/FullCopy recording на СРВИ |
+| **API Gateway** | User contour routing; license gate `FEDERATION` на `/federation/*` |
+| **LCS** | Features `PPUV`, `FEDERATION`; limit `PpuvFederationRegionCount` |
+
+**FGS не заменяет RSM.** RSM — источник lease/journal на своей платформе.
+
+---
+
+## 3. Контуры вызовов
+
+### 3.1. User contour (UI / admin)
+
+```text
+Client --Bearer JWT--> API Gateway --Bearer JWT--> ENM | RSM | SB | FGS
+```
+
+- Пользователь **никогда** не ходит в региональный gateway.
+- FGS admin: `GET/POST /federation/api/v1/...` (gateway: `/federation/{everything}` → FGS `/api/v1/{everything}`).
+
+### 3.2. S2S contour (межплатформенный, iter 1)
+
+```text
+RSM(SRVI) --> FGS(SRVI) --mTLS+client credentials--> regional services (direct URLs из Installation)
+SB(SRVI)  --> FGS(SRVI) --> ...
+```
+
+**Iter 3** сводит внешний контур к `federationGatewayBaseUrl` на regional FGS — см. [ITERATION_3.md](../iterations/ITERATION_3.md). Production default: **`PeerFgs`**.
+
+**Mode dispatch (iter 3):** `Federation:Mode=Srvi` — контроллеры вызывают outbound `Federated*Service` (peer FGS — единственная топология с iter 7/D2). `Federation:Mode=Region` — те же контроллеры через `Federated*ServiceRouter` вызывают `RegionalInbound*` forwarders к локальным RSM/SB/DCS/ENM (`RegionalInternalUrlResolver`, без lookup Installation).
+
+**Internal routing (Region):** `Federation:InternalRouting:Mode=Direct` — docker URL (`Direct:RsmBaseUrl`, …); `ApiGateway` — `{ApiGatewayBaseUrl}{RsmPrefix|BalancerPrefix|…}`. Inbound HTTP пробрасывает `X-Federation-Source-Installation-Id` и correlation через `IPlatformInternalHttpClientFactory`.
+
+Реализация в FGS:
+
+- `IRegionalS2SHttpClientFactory` — client cert, thumbprint pin
+- `IRegionalAccessTokenProvider` — client credentials per installation
+- `RegionalS2SAccessPolicy` — optional `AllowedNetworks`
+
+---
+
+## 4. Origin model
+
+Проверка в RSM/SB: `OriginType` из ENM.
+
+| Origin | RSM → FGS? | SB federated? |
+|--------|------------|---------------|
+| `Local` | **Нет** | **Нет** |
+| `FederatedProjection` | Да | Да |
+| `FederatedCopy` | Зависит от операции | Часто local MSS |
+
+**Инвариант:** при `Federation__Enabled=false` path для `Local` не меняется.
+
+---
+
+## 5. API по сервисам
+
+Префиксы — через **API Gateway СРВИ**.
+
+### 5.1. Federation Gateway (`/federation/`)
+
+| Метод | Путь | Контур | Назначение |
+|-------|------|--------|------------|
+| GET | `/federation/health` | User | Health + mode |
+| GET/POST/PUT | `/federation/installations` | User (admin) | Registry CRUD |
+| POST | `/federation/installations/{id}/probe` | User | Peer health |
+| POST | `/federation/installations/{id}/catalog/sync` | User | Manual catalog sync |
+| GET | `/federation/installations/{id}/catalog/sync/{operationId}` | User | Sync job status |
+| POST | `/federation/locks/stream-block/apply` | **S2S** | StreamBlock from peer |
+| POST | `/federation/locks/stream-block/release` | S2S | Release |
+| POST | `/federation/locks/archive/apply` | S2S | Archive lock |
+| POST | `/federation/locks/archive/release` | S2S | Release |
+| POST | `/federation/ptz/acquire` | S2S | PTZ lock |
+| POST | `/federation/ptz/release` | S2S | Release |
+| POST | `/federation/ptz/commands` | S2S | Forward PTZ → DCS |
+| POST | `/federation/playback/urls` | S2S | Signed URL negotiation; body: `ppuvOperatorUserId` (relay от SB СРВИ для StreamBlock bypass на regional MSS) |
+| POST | `/federation/playback/archive/segments` | S2S | Federated DVR segments |
+| POST | `/federation/archive/extract` | S2S / internal | Start extract job |
+| GET | `/federation/archive/extract/{jobId}` | S2S / internal | Job status |
+| POST | `/federation/archive/extract/{jobId}/retry` | S2S / internal | Retry |
+| POST | `/federation/media-plans/reserve` | S2S | Reserve всех projection streams камеры на MSS СРВИ |
+| POST | `/federation/media-plans/full-copy` | S2S | FullCopy |
+| GET | `/federation/media-plans/{planId}` | S2S | Статус media plan |
+| POST | `/federation/media-plans/{planId}/disable` | S2S | Остановить reserve / отключить plan |
+| DELETE | `/federation/media-plans/{planId}` | S2S | Cleanup reserve (для reserve ≈ disable) |
+
+Swagger FGS: через gateway key `federation-gateway`.
+
+### 5.2. RSM (`/rsm/api/v1/`)
+
+**Locks (user contour):**
+
+| Метод | Путь | Назначение |
+|-------|------|------------|
+| POST | `/locks/acquire` | StreamBlock / PTZ / Archive |
+| POST | `/locks/{leaseId}/release` | Release |
+| GET | `/locks/{cameraId}/status` | Status (`?lockType=`) |
+| GET | `/locks/{cameraId}/archive` | Archive locks в окне `from`/`to` |
+| POST | `/locks/batch/jobs` | Async batch по `cameraIds[]` |
+| POST | `/locks/batch/geo-jobs` | **Lasso:** geo → ENM resolve → batch |
+| GET | `/locks/batch/jobs/{batchJobId}` | Batch status + `regionSummary[]` |
+
+**Federation facade (user contour, удобно для UI):**
+
+| Метод | Путь | Назначение |
+|-------|------|------------|
+| GET | `/federation/status` | FGS connectivity summary |
+| POST | `/federation/archive/extract` | Proxy → FGS extract |
+| GET | `/federation/archive/extract/{jobId}` | Job status |
+| POST | `/federation/archive/extract/{jobId}/retry` | Retry |
+
+Код facade: `FederationController.cs`, `FederationArchiveExtractClient`.
+
+**Lasso request** (`CreateBatchGeoLockJobRequest`):
+
+```json
+{
+  "geoSearchRequest": {
+    "searchArea": { "$type": "polygon", "vertices": [...] }
+  },
+  "lockType": "StreamBlock",
+  "operation": "Acquire",
+  "durationSeconds": 3600,
+  "idempotencyKey": "lasso-uuid"
+}
+```
+
+Лимит: **300 камер** по умолчанию (`FederationBatchLassoOptions.MaxCamerasPerLasso` в коде, без appsettings).
+
+### 5.3. ENM (`/entities/api/v1/`)
+
+**Публичный (UI):**
+
+| Метод | Путь | Назначение |
+|-------|------|------------|
+| POST | `/map/geo-search` | Кластеры на карте |
+| POST | `/map/geo-search-resolve` | **Preview lasso** (без кластеризации) |
+| POST | `/cameras/gallery-filter` | Галерея (+ federation filters) |
+| GET | `/tree-nodes` | Дерево |
+| GET | `/tags/dictionary` | Теги |
+
+**Federation filters** в `DeviceFilterRequest` / `MapGeoSearchRequest`:
+
+- `federationRegionId` — `Guid?`
+- `federationOriginTypes[]` — `Local`, `FederatedProjection`, `FederatedCopy`
+
+**Internal (S2S, RSM lasso):**
+
+| Метод | Путь | Назначение |
+|-------|------|------------|
+| POST | `/internal/federation/geo/resolve-cameras` | Тот же resolve, что public |
+
+**Response** (`GeoSearchResolveResponse`):
+
+```json
+{
+  "cameras": [{ "cameraId", "originType", "regionId", "regionName" }],
+  "totalCameras": 12,
+  "summary": { "byOriginType": {}, "byRegion": [] },
+  "limits": { "maxCamerasPerLasso": 300, "exceedsLassoLimit": false }
+}
+```
+
+**Код:**
+
+| Компонент | Путь |
+|-----------|------|
+| `IGeoAreaResolveService` | `entities-management/.../Abstractions/Services/` |
+| `GeoAreaResolveService` | `Storage.PostgreSql/Services/` |
+| `GeoAreaResolveQueries` | SQL LINQ projection |
+| `GeoSearchResolveResponseBuilder` | `EntityManagerService/Services/` |
+| `MapController.GeoSearchResolve` | public endpoint |
+| `InternalFederationGeoController` | S2S endpoint |
+
+**Лимит:** `GeoSearchResolveOptions.MaxCamerasPerLasso` (default **300** в коде, sync с RSM; не в appsettings).
+
+**FGS catalog sync:** internal upsert `ProvisionFederationProjection` и связанные сервисы.
+
+### 5.4. Streamer Balancer (`/balancer/`)
+
+| Сценарий | Path | Federated path |
+|----------|------|----------------|
+| Live / snapshot | `POST /playback/urls` | SB → FGS `POST /playback/urls` → regional SB |
+| Archive segments | `GET /streams/{id}/archive/segments` | SB → FGS `POST /playback/archive/segments` |
+
+`FederationGatewayApiClient:BaseUrl` пустой → federated unavailable; local не затрагивается.
+
+#### Federated playback и StreamBlock (контекст оператора ППУВ)
+
+При federated live браузер ходит **напрямую** на regional MSS по signed URL. Regional SB подписывает URL в S2S-контуре (`client_credentials` FGS) — без доп. контекста в `wmsAuthSign` получается `{clientId}_client`, и MSS при активном StreamBlock отдаёт live **403** (архив при этом может работать).
+
+Цепочка `PpuvOperatorUserId` (только federated path):
+
+```text
+User JWT (СРВИ, ppuv:operate)
+  -> SB(SRVI): ResolveSrviPpuvOperatorUserId() из user JWT
+  -> FGS(SRVI) POST /api/v1/playback/urls { ppuvOperatorUserId }
+  -> FGS(B) S2S -> regional SB POST /playback/urls { ppuvOperatorUserId }
+  -> FederationPlaybackTrust: поле принимается только от service JWT со scope federation:inbound
+  -> ProtectUrl(..., ppuvOperatorUserId) -> ownerId с суффиксом _ppuv
+  -> браузер -> regional MSS: bypass StreamBlock для оператора
+```
+
+| Поле | Контракт | Кто заполняет |
+|------|----------|---------------|
+| `PpuvOperatorUserId` | `PlaybackUrlsRequest`, `FederatedPlaybackRequest` | SB(SRVI) из user JWT; FGS — relay; regional SB — trust-check |
+
+Безопасность: user JWT **не может** подставить чужой `PpuvOperatorUserId` на regional SB — без federation service scope поле игнорируется.
+
+Локальный контур (`OriginType=Local`, `FEDERATION=off`) и прямой вызов regional SB user JWT не меняются.
+
+Код: `FederationPlaybackTrust.cs`, `StreamLinkService.ResolveSrviPpuvOperatorUserId`, `StreamAuthorizationService.ProtectUrl`, `FederatedPlaybackNegotiationService`.
+
+#### Reserve media plan
+
+##### Назначение
+
+**Reserve** — ручное включение **параллельной локальной записи** federated projection камеры на MSS СРВИ. Регион продолжает работать как обычно (live и архив на regional MSS не скрываются). На СРВИ появляется отдельный reserve-поток на локальном MSS; при недоступности региона SB может переключить playback на локальный reserve (`LocalReserveFallback`).
+
+Reserve **не** является:
+
+| Операция | Reserve | Отличие |
+|----------|---------|---------|
+| **StreamBlock** (ППУВ) | Нет | StreamBlock блокирует live в регионе; reserve только копирует поток на СРВИ |
+| **FullCopy** | Нет | FullCopy переводит камеру в `FederatedCopy` и переносит потоки на локальный MSS; reserve добавляет sibling reserve streams к projection |
+| **Автоматический TTL** | Нет | `retentionSeconds` — не «выключить через N секунд» (см. ниже) |
+
+Запускается **только вручную** (`POST reserve`). Регион в момент create **не вызывается** — работают FGS, ENM и MSS на СРВИ.
+
+##### API (FGS СРВИ)
+
+Базовый путь: `/federation/api/v1/media-plans/...` (gateway) или `/api/v1/media-plans/...` (FGS `:8132`).
+
+| Метод | Путь | Назначение |
+|-------|------|------------|
+| POST | `.../reserve` | Создать reserve plan, provision ENM + старт записи MSS |
+| GET | `.../{planId}` | Статус plan |
+| POST | `.../{planId}/disable` | **Основной способ отмены** reserve |
+| DELETE | `.../{planId}` | Cleanup (для reserve — тот же эффект, что disable) |
+
+Код: `FederationMediaPlanService`, `MssRecordingProvisioner`, ENM `FederationLocalMediaService.ProvisionReserveStreamsForCamera`.
+
+##### Создание (`POST .../reserve`)
+
+Резервируются **все** federated projection streams камеры (Main + Sub).
+
+**Request:**
+
+```json
+{
+  "localCameraId": "<projection camera guid на СРВИ>",
+  "localVideoServerId": "<local MSS VideoServer guid из ENM>",
+  "federationOperationId": null,
+  "retentionSeconds": 86400
+}
+```
+
+| Поле | Обязательно | Описание |
+|------|-------------|----------|
+| `localCameraId` | да | Локальная `FederatedProjection` камера в ENM (после catalog sync) |
+| `localVideoServerId` | да | Локальный `VideoServer` с `UrlAddress` → MSS СРВИ |
+| `federationOperationId` | нет | Идемпотентность: повтор с тем же id вернёт существующий plan |
+| `retentionSeconds` | нет | Глубина скользящего DVR-окна (см. § retention) |
+
+`regionId`, `remoteCameraId`, `remoteStreamId`, `mediaPath`, `RegionPush` — **не передаются**: FGS/ENM выводят их из метаданных камеры и projection streams.
+
+**Response (успех):**
+
+```json
+{
+  "success": true,
+  "result": {
+    "planId": "...",
+    "regionId": "...",
+    "kind": "Reserve",
+    "status": "Active",
+    "localCameraId": "...",
+    "localProjectionStreamId": "...",
+    "localReserveStreamId": "...",
+    "reserveStreams": [
+      {
+        "localProjectionStreamId": "...",
+        "localReserveStreamId": "...",
+        "remoteStreamId": "..."
+      }
+    ],
+    "remoteCameraId": "...",
+    "remoteStreamId": "...",
+    "finishedAt": null
+  }
+}
+```
+
+- `reserveStreams[]` — по одному элементу на каждый projection stream (Main, Sub, …).
+- Поля `localProjectionStreamId` / `localReserveStreamId` / `remoteStreamId` в корне — **первый** stream (обратная совместимость).
+- **`planId` нужно сохранить в UI** — по нему отменяют reserve (`disable`).
+
+##### Что происходит при create (по сервисам)
+
+```text
+Client → FGS CreateReserveAsync
+  → ENM POST .../reserve/provision-by-camera
+       · для каждого projection stream: новый MediaStream (IsFederationReserve=true)
+       · StreamUrl = federation:reserve:{regionId}:{remoteStreamId}
+       · projection.FederationReserveStreamId = reserve.Id
+  → FGS сохраняет FederationMediaPlan (status=Active, reserveStreamsJson)
+  → MSS для каждого reserve stream:
+       · POST api/v1/streams (create)
+       · POST api/v1/streams/{id}/record
+```
+
+Запись на MSS — **pull** с региона по URL `federation:reserve:{regionId}:{remoteStreamId}`.
+
+При ошибке после ENM provision FGS вызывает rollback: `ENM .../reserve/cameras/{localCameraId}/disable`.
+
+##### `retentionSeconds` — семантика (важно)
+
+**Это не таймер жизни media plan.** Reserve **не выключается сам** по истечении `retentionSeconds`.
+
+`retentionSeconds` задаёт **глубину скользящего окна локального DVR** на MSS (rolling window): сколько **последних** секунд архива хранить на диске Nimble. Старые сегменты удаляются, новые продолжают писаться.
+
+```text
+t=0     reserve start     архив на MSS: [======== 24h ========]
+t=1h    окно сдвинулось                  [======== 24h ========]
+t=5h    plan всё ещё Active              [======== 24h ========]
+        (сегменты старше 24h удалены, запись идёт)
+
+disable оператором → запись стоп, reserve streams удалены из ENM
+```
+
+| Вопрос | Ответ |
+|--------|--------|
+| Plan сам перейдёт в `Disabled`? | **Нет** |
+| Запись остановится после N секунд? | **Нет** (пишется непрерывно) |
+| Что делает N секунд? | Ограничивает **глубину** доступного архива (последние N сек) |
+| Откуда берётся N, если не передан? | Из `RetentionSeconds` projection stream в ENM |
+| Что на MSS? | `DvrMaxDuration` в Nimble (секунды → минуты в провайдере) |
+
+**Известный gap:** `MssRecordingProvisioner` пока **всегда** передаёт `DvrMaxDuration=86400` на MSS, независимо от `retentionSeconds` в ENM. В каталоге ENM значение сохраняется корректно; протягивание в MSS — follow-up.
+
+##### Статусы media plan (Reserve)
+
+| `status` | Смысл |
+|----------|--------|
+| `Active` | Reserve включён, запись должна идти на MSS |
+| `Disabling` | Промежуточный при `disable` |
+| `Disabled` | Reserve отменён, `finishedAt` заполнен |
+| `Failed` | Ошибка при create (plan может быть с `lastError`) |
+| `CleaningUp` | Промежуточный при `DELETE` |
+
+Пока plan `Active`, оператор считает reserve **включённым**, даже если регион временно недоступен (локальный архив растёт только пока есть источник и MSS пишет).
+
+##### Отмена reserve (`disable` / `delete`)
+
+**Рекомендуемый способ для UI:** `POST .../media-plans/{planId}/disable`.
+
+```bash
+curl -X POST "http://localhost:8085/federation/api/v1/media-plans/{planId}/disable" \
+  -H "Authorization: Bearer <token>"
+```
+
+**`DELETE .../media-plans/{planId}`** для reserve выполняет **тот же cleanup** (`DisableReservePlanAsync`). Запись в БД FGS не удаляется физически — plan остаётся со статусом `Disabled`.
+
+**Цепочка при disable:**
+
+```text
+FGS DisablePlanAsync
+  → для каждого reserve stream в plan:
+       MSS PUT api/v1/streams/{id}  (IsPaused=true, DvrReadOnly=true)
+  → ENM POST .../reserve/cameras/{localCameraId}/disable
+       · удаляет reserve MediaStream из БД
+       · снимает FederationReserveStreamId с projection streams
+  → FGS: plan.status=Disabled, finishedAt=UtcNow, reserveStreamsJson очищен
+```
+
+| Слой | После disable |
+|------|----------------|
+| FGS plan | `Disabled`, `finishedAt` set |
+| ENM | Reserve streams **удалены**; projection камера и streams **остаются** |
+| MSS | Запись остановлена (pause + DVR read-only); **файлы DVR на диске не удаляются** этим API автоматически |
+| Регион | Без изменений |
+| Live playback | Снова только regional path (или reserve fallback недоступен) |
+
+Проверка статуса: `GET .../media-plans/{planId}` → ожидание `status: "Disabled"`.
+
+##### Что **не** отменяет reserve автоматически
+
+- Истечение «окна» `retentionSeconds` (удаляются только старые сегменты, не plan).
+- Недоступность региона (plan остаётся `Active`; новые сегменты могут не писаться без источника).
+- Перезапуск контейнеров (plan в FGS может остаться `Active` при рассинхроне MSS/ENM — edge case, ручной disable или повторный smoke).
+- Удаление камеры в регионе (projection может стать `Stale`; reserve plan в FGS не disable сам).
+
+##### Ограничения и ошибки
+
+| Условие | Результат |
+|---------|-----------|
+| Камера не `FederatedProjection` | `CameraIsNotFederatedProjection` |
+| Reserve уже есть на камере | `ReserveStreamAlreadyExists` |
+| Нет projection streams | `FederatedProjectionStreamsNotFound` |
+| `localVideoServerId` пустой | `LocalVideoServerIdRequired` |
+| VideoServer без `UrlAddress` | ENM provision OK, MSS запись **пропускается** (warning в логах FGS) |
+| Disable при отсутствии reserve | `ReserveStreamsNotFound` |
+
+##### Связь с playback
+
+- Пока регион доступен: live/archive projection идут через regional MSS (SB → FGS).
+- При outage региона: SB strategy `LocalReserveFallback` может отдать локальный reserve stream, если plan был `Active` и на MSS есть архив/live.
+- `origin.reserveStreamId` в ENM указывает на локальный reserve stream projection (для UI badge / diagnostics).
+
+#### FullCopy media plan (упрощённый API)
+
+`POST /federation/media-plans/full-copy` на **FGS СРВИ**. Камера переводится из `FederatedProjection` в `FederatedCopy`, потоки переносятся на локальный MSS.
+
+**Request:**
+
+```json
+{
+  "localCameraId": "<projection camera guid на СРВИ>",
+  "localVideoServerId": "<local MSS VideoServer guid из ENM>",
+  "useRegionalProxyForLiveSource": null
+}
+```
+
+`regionId`, `remoteCameraId`, `catalog` — **не передаются**: FGS вызывает ENM `full-copy/provision-by-camera`, метаданные читаются из локального каталога (как после catalog sync).
+
+Live source URL на потоках: `federation:fullcopy-proxy:{regionId}:{remoteStreamId}` (или `-direct`, если `useRegionalProxyForLiveSource=false`). MSS пока **не** понимает эти URL — live playback для `FederatedCopy` идёт через **FGS → regional MSS** (`strategy: SignedRegionalUrl` в SB). Локальный MSS path (`LocalMss`) — fallback, когда regional недоступен и поток реально заведён на MSS.
+
+#### FullCopy playback (SB)
+
+| `originType` | Live (по умолчанию) | Archive |
+|--------------|---------------------|---------|
+| `FederatedCopy` | FGS `POST /playback/urls` → signed regional HLS/WS | Remote archive summary через FGS |
+| fallback | `LocalMss` — только если regional unavailable **и** stream на локальном MSS |
+
+Код: `StreamLinkService` — ветка `FederatedCopy` делегирует в `FederatedPlaybackService`, как projection.
+
+### 5.5. API Gateway
+
+| Правило | Реализация |
+|---------|------------|
+| Route `/federation/*` | ocelot → FGS |
+| License gate | `LicenseGateMiddleware` — без `FEDERATION` → `403` |
+
+---
+
+## 6. Catalog sync
+
+```text
+CatalogDeltaSyncBackgroundService
+  -> regional ENM (gallery, streams, tree-nodes, tags)
+  -> FGS normalizes
+  -> local ENM internal upsert projection
+  -> stale handling (SyncStatus=Stale)
+```
+
+| Тема | Деталь |
+|------|--------|
+| `entitiesBaseUrl` installation | ENM региона, не FGS |
+| Теги | Только через камеры gallery; `GET tags/{id}` per tag |
+| Manual sync | `POST .../catalog/sync` body `{}` + `Content-Type: application/json` |
+| Icon | Поле `icon` в catalog sync (iter 1+) |
+
+Конфиг: `Federation:CatalogSync:*`.
+
+---
+
+## 7. Federated lock flow
+
+Пример StreamBlock:
+
+```text
+UI -> RSM acquire (local cameraId)
+  -> ENM origin: FederatedProjection
+  -> RSM -> FGS(SRVI) ApplyStreamBlock
+  -> FGS(SRVI) -> regional RSM (S2S)
+  -> ACK / compensation
+  -> RSM(SRVI) journal
+```
+
+Idempotency: `federation-streamblock:{operationId}`.
+
+Статусы: `PendingRemote`, `RemoteFailed`, `Compensating`.
+
+**Archive lock:** одна активная lease на камеру (v1); второй acquire с другим интервалом = replace.
+
+**StreamBlock:** coupled Archive lock на регионе за период SB.
+
+---
+
+## 8. Geo resolve и lasso
+
+### 8.1. Два фасада — одна логика
+
+```text
+UI preview:     POST /map/geo-search-resolve          (user JWT + permissions)
+RSM execute:    POST /internal/.../resolve-cameras     (service token / user)
+                         ↑
+BatchGeoLockJobService → EntityManagementFederationGeoResolveClient
+```
+
+### 8.2. Lasso end-to-end
+
+```text
+1. UI: geo-search-resolve (optional preview)
+2. UI: POST /locks/batch/geo-jobs
+3. RSM: IFederationGeoResolveClient → ENM internal resolve
+4. RSM: validate count <= 300
+5. RSM: CreateBatchLockJob → per-camera federated acquire
+6. UI: poll GET /locks/batch/jobs/{id}
+```
+
+### 8.3. Unit tests (ENM)
+
+- `GeoAreaResolveServiceTests` — query + permissions + mixed regions
+- `GeoSearchResolveSummaryBuilderTests`
+- `GeoSearchResolveResponseBuilderTests`
+
+E2E: I2-07, I2-08 — [TESTING.md](../testing/TESTING.md).
+
+---
+
+## 9. Archive extract → RFM
+
+```text
+UI -> RSM facade POST /federation/archive/extract
+  -> FGS job
+  -> regional extract → signed URL
+  -> FGS import → RFM presigned upload
+```
+
+Требуется `OwnerUserId` в request.
+
+Конфиг FGS:
+
+```text
+Federation__ArchiveExtract__RecordsFilesManagementBaseUrl
+ApiClientConfiguration__*  (RFM client credentials)
+```
+
+---
+
+## 10. Конфигурация и compose
+
+### 10.1. Compose
+
+```bash
+cd backend-docker-compose/netvision
+docker compose -f internal/docker-compose-fed.yml --profile federation up -d
+```
+
+`.env`: `FEDERATION_GATEWAY_URL=http://host.docker.internal:8132`
+
+RSM/SB: `FederationGatewayApiClient__BaseUrl=${FEDERATION_GATEWAY_URL}`
+
+### 10.2. FGS platform config (кратко)
+
+| Ключ | Назначение |
+|------|------------|
+| `Federation__Enabled` | Master switch федерации |
+| `Federation__Mode` | `Disabled` / `Srvi` / `Region` |
+| `Federation__LocalInstallationId` | UUID платформы → `X-Federation-Source-Installation-Id` |
+| `Federation__Outbound__Mode` | ~~удалено (iter 7/D2)~~ — `PeerFgs` теперь единственная топология, ключ конфига убран |
+| `Federation__InternalRouting__Mode` | `Direct` / `ApiGateway` — только при `Federation__Mode=Region` |
+| `Federation__InternalRouting__Direct__*` | Прямые URL RSM/SB/ENM/DCS в docker-сети региона |
+| `Federation__InternalRouting__ApiGatewayBaseUrl` | Базовый URL внутреннего AGS + prefixes (`RsmPrefix`, …) |
+| `Federation__S2S__*` | mTLS (опционально), inbound JWT + license |
+| `Federation__CatalogSync__*` | Polling sync (дефолты в appsettings; в compose не пробрасываются) |
+| `Federation__ArchiveExtract__*` | RFM URL, retry |
+| `Federation__MediaPlan__*` | FullCopy / auto-reserve |
+| `EntityManagementApiClient__BaseUrl` | ENM projections |
+| `ApiClientConfiguration__*` | OAuth client FGS |
+
+Полный справочник — [§10.5](#105-справочник-federation).
+
+### 10.3. Per-region (Installation DB)
+
+| Поле | Назначение |
+|------|------------|
+| `FederationGatewayBaseUrl` | Внешний URL FGS региона — единственная точка входа outbound (обязательное поле, уникальный индекс). Прямые URL ENM/SB/RSM/DCS удалены в iter 7/D2 (`DirectServices` не был в production) |
+| `TokenUrl`, `ClientId`, `ClientSecret` | S2S OAuth |
+| `CertificateThumbprint`, `RequireMutualTls` | Trust outbound |
+| `AllowedNetworks` | CIDR allowlist (при `EnforceAllowedNetworks`) |
+
+**Pairing (iter 6):** в Installation на СРВИ — `TokenUrl`, `ClientId`, `ClientSecret` **regional RM**. OAuth-клиент должен иметь scope `federation:inbound` (плюс `camera:read`, `ppuv:*` для catalog/locks). Отдельные env с GUID СРВИ на регионе **не нужны**.
+
+### 10.4. ENM / RSM lasso limit (код)
+
+Значение по умолчанию **300** в:
+
+- ENM: `GeoSearchResolveOptions.MaxCamerasPerLasso`
+- RSM: `FederationBatchLassoOptions.MaxCamerasPerLasso`
+
+Не задаётся в `appsettings`; UI читает фактический лимит из `geo-search-resolve` → `limits.maxCamerasPerLasso`.
+
+---
+
+### 10.5. Справочник `Federation:*`
+
+В Docker / Linux переменные окружения: `Federation__Enabled=true` ≡ JSON `"Federation": { "Enabled": true }`.
+
+#### Корневая секция `Federation`
+
+| Ключ | Тип | Default | Где | Назначение |
+|------|-----|---------|-----|------------|
+| `Enabled` | bool | `false` | FGS, health | **Master switch.** `false` — federated API возвращает 409, outbound не выполняется, polling sync не стартует. |
+| `Mode` | string | `Disabled` | FGS health | Роль процесса: `Disabled` — федерация выключена; `Srvi` — управляющая платформа; `Region` — inbound peer. Отображается в `GET /api/v1/health`. |
+| `LocalInstallationId` | Guid | — | FGS | UUID **этой** платформы. Уходит в `X-Federation-Source-Installation-Id` при outbound S2S с СРВИ. На регионе — attribution в RSM (не allowlist). |
+
+#### `Federation:Outbound`
+
+| Ключ | Тип | Default | Назначение |
+|------|-----|---------|------------|
+| ~~`Mode`~~ | — | — | **Удалено (iter 7/D2).** `DirectServices` не был в production и удалён из кода вместе с прямыми URL-полями Installation (`EntitiesBaseUrl`/`StreamerBalancerBaseUrl`/`ResourceStateManagementBaseUrl`/`DeviceControlServiceBaseUrl`) и `InstallationOutboundTargetResolver.IsPeerFgs`. Единственная топология outbound теперь peer FGS (`Installation.FederationGatewayBaseUrl`, обязательное поле, уникальный индекс). |
+
+Класс: `InstallationOutboundTargetResolver`, options: `FederationOutboundOptions`.
+
+#### `Federation:S2S`
+
+| Ключ | Тип | Default | Назначение |
+|------|-----|---------|------------|
+| `EnforceAllowedNetworks` | bool | `false` | Перед outbound HTTP проверять host целевого URL против `Installation.AllowedNetworks` (host или CIDR). |
+| `ClientCertificatePath` | string | — | Client cert СРВИ для mTLS к регионам (PFX). Обязателен, если у installation `RequireMutualTls=true`. |
+| `ClientCertificatePassword` | string | — | Пароль PFX. |
+| `RequireInboundClientCertificate` | bool | `false` | Опциональный слой: client cert на inbound S2S paths. |
+| `InboundAllowedThumbprints` | string | — | Allowlist thumbprint inbound client cert (через запятую). Пусто — любой валидный cert. |
+| `RequireInboundAuthentication` | bool | `true` | License `FEDERATION` + Bearer JWT regional RM с `federation:inbound` + валидный `X-Federation-Source-Installation-Id`. `false` — только dev opt-out. |
+
+Middleware: `FederationInboundS2SMiddleware` (`FederationInboundJwtValidator`, `IFederationFeatureLicenseGate`). Outbound: `RegionalS2SHttpClientFactory`.
+
+> **Iter 6:** `InboundAllowedSourceInstallationIds` и `Federation:Inbound:*` на RSM **удалены**. См. [ITERATION_6.md](../iterations/ITERATION_6.md).
+
+> **Подробный runbook** (prod pairing, thumbprints, диагностика): [S2S_CERTIFICATES_AND_MTLS.md](S2S_CERTIFICATES_AND_MTLS.md).
+
+#### `Federation:CatalogSync`
+
+| Ключ | Тип | Default | Назначение |
+|------|-----|---------|------------|
+| `Enabled` | bool | `true` | Фоновый `CatalogDeltaSyncBackgroundService`. |
+| `IntervalSeconds` | int | `300` | Пауза между полными проходами по registry. |
+| `JitterPercent` | int | `20` | ±% к интервалу (разнести пики). |
+| `PageSize` | int | `100` | Страница камер с regional ENM. |
+| `MaxPages` | int | `1000` | Лимит страниц за цикл на installation. |
+| `RegionalRequestDelayMilliseconds` | int | `100` | Throttle между запросами к одному региону. |
+| `PollLoopDelaySeconds` | int | `30` | Idle sleep worker. |
+| `StartupDelaySeconds` | int | `60` | Задержка после старта приложения. |
+
+Значения по умолчанию — в `appsettings.Production.json` / `CatalogSyncPollingOptions`. В `backend-docker-compose/netvision/.env` **не выводятся** (iter 6). На регионе worker безвреден: в local registry нет Region-installations.
+
+#### `Federation:ArchiveExtract`
+
+| Ключ | Тип | Default | Назначение |
+|------|-----|---------|------------|
+| `RecordsFilesManagementBaseUrl` | string | — | Base URL RFM СРВИ для import изъятого архива. Без URL — extract job не импортирует. |
+| `MaxRetries` | int | `3` | Повторы при transient-сбоях extract/import. |
+
+#### `Federation:MediaPlan`
+
+| Ключ | Тип | Default | Назначение |
+|------|-----|---------|------------|
+| `FullCopyUseRegionalProxy` | bool | `true` | FullCopy: брать live через regional proxy вместо прямого URL. |
+| `AutoReserveOnFullCopy` | bool | `false` | После успешного FullCopy автоматически создать Reserve plan. |
+
+#### Связанные клиенты (не под `Federation`, но обязательны на СРВИ)
+
+| Ключ | Назначение |
+|------|------------|
+| `EntityManagementApiClient__BaseUrl` | ENM СРВИ для upsert projections / finalize sync |
+| `ApiClientConfiguration__ClientId` / `ClientSecret` / `TokenUrl` | OAuth FGS → ENM, RFM |
+| `FederationGatewayApiClient__BaseUrl` | На **RSM/SB** СРВИ: URL FGS для federated locks/playback |
+
+#### OAuth clients (regional RM)
+
+На регионе OAuth-клиент из Installation (и platform client FGS) должен иметь:
+
+- `camera:read` — catalog sync / proxy
+- `ppuv:operate`, `ppuv:stream-block`, `ppuv:archive:seize`, `ppuv:preempt`
+- `federation:inbound` — inbound S2S scope (iter 6; сидируется у клиента `FederationGateway` в RM)
+
+#### Пример `appsettings` (СРВИ)
+
+```json
+{
+  "Federation": {
+    "Enabled": true,
+    "Mode": "Srvi",
+    "LocalInstallationId": "00000000-0000-0000-0000-000000000001",
+    "Outbound": { "Mode": "PeerFgs" },
+    "S2S": {
+      "EnforceAllowedNetworks": true,
+      "ClientCertificatePath": "/certs/srvi-client.pfx",
+      "RequireInboundClientCertificate": false
+    },
+    "CatalogSync": { "Enabled": true, "IntervalSeconds": 300 },
+    "ArchiveExtract": {
+      "RecordsFilesManagementBaseUrl": "http://rfm:8108",
+      "MaxRetries": 3
+    },
+    "MediaPlan": {
+      "FullCopyUseRegionalProxy": true,
+      "AutoReserveOnFullCopy": false
+    }
+  }
+}
+```
+
+#### Пример pairing (регион)
+
+```json
+{
+  "Federation": {
+    "Enabled": true,
+    "Mode": "Region",
+    "LocalInstallationId": "22222222-2222-2222-2222-222222222222",
+    "S2S": {
+      "RequireInboundClientCertificate": true,
+      "InboundAllowedThumbprints": "ABC123..."
+    }
+  }
+}
+```
+
+`TokenConfiguration` на FGS региона — тот же ключ, что у regional RM (для проверки inbound Bearer JWT).
+
+---
+
+## 11. Где искать код
+
+| Область | Путь |
+|---------|------|
+| FGS core | `federation-gateway/src/Netvision.FederationGateway/` |
+| FGS controllers | `federation-gateway/...Controllers/Api/v1/` |
+| S2S client | `RegionalS2SHttpClientFactory.cs`, `RegionalS2SAccessPolicy.cs` |
+| RSM federation | `resource-state-management/.../Services/Federation*` |
+| RSM lasso | `BatchGeoLockJobService.cs`, `EntityManagementFederationGeoResolveClient.cs` |
+| RSM extract facade | `FederationController.cs`, `FederationArchiveExtractClient.cs` |
+| ENM origin | `FederationOriginMapper.cs`, `FederationProjectionService.cs` |
+| ENM geo resolve | `GeoAreaResolveService.cs`, `MapController.cs`, `InternalFederationGeoController.cs` |
+| SB playback | `streamer-balancer-v2/.../StreamPlaybackOriginResolver.cs` |
+| Gateway | `api-gateway-v2/.../ocelot.*.json`, `LicenseGateMiddleware.cs` |
+| Compose | `backend-docker-compose/.../docker-compose-fed.yml` |
+| Docs | `federation-gateway/features/federation/` |
+
+### Regional RM: OAuth для federation
+
+- **Installation (СРВИ):** `clientId` / `clientSecret` regional RM с `federation:inbound`
+- **Platform FGS (регион):** клиент `FederationGateway` в RM — те же permissions + `federation:inbound` (seeding)
+
+Inbound actor на RSM: JWT с `federation:inbound` + заголовок `X-Federation-Source-Installation-Id` (GUID СРВИ).
+
+---
+
+## 12. Паттерны для новых фич
+
+1. **Origin gate first:** local fast path; federated только при enabled + non-Local.
+2. **User API на СРВИ;** regional URLs не в UI contracts.
+3. **Idempotency key** на mutating S2S.
+4. **Service principal на регионе;** correlation через `FederationOperationId`.
+5. **Unit tests** на gate: `Local` → no FGS call.
+6. **Два фасада ENM:** public preview + internal resolve — одна реализация `IGeoAreaResolveService`.
+
+---
+
+## 13. Чеклист PR
+
+- [ ] `Federation__Enabled=false` regression unchanged
+- [ ] Nullable origin fields backward compatible
+- [ ] Internal API за `[Authorize]`
+- [ ] Конфиг в `appsettings` + compose overlay
+- [ ] Checkbox в [ITERATION_*.md](../iterations/ITERATION_1.md) при завершении фазы
+- [ ] [FRONTEND.md](../guides/FRONTEND.md) / этот файл при новых user-facing endpoints
+
+---
+
+## 14. Backlog
+
+| Item | Статус |
+|------|--------|
+| Inbound mTLS Kestrel | ✅ middleware |
+| S2S idempotency/outbox | ✅ stream-block, PTZ, archive |
+| LCS feature `FEDERATION` | ✅ seed |
+| Grouped batch `regionSummary[]` | ✅ |
+| Coupled Archive on StreamBlock | ✅ |
+| `geo-search-resolve` public API | ✅ I2-E |
+| BatchLockJobProcessor grouping by regionId | backlog (optional) |
+| Peer FGS only external entry (iter 3) | ✅ implemented (default off) |
+| Reconciliation worker (lock drift) | backlog |
+
+Детали: [ITERATION_1.md](../iterations/ITERATION_1.md), [ITERATION_2.md](../iterations/ITERATION_2.md), [ITERATION_3.md](../iterations/ITERATION_3.md).
+
+
+# Федерация ППУВ — гайд для фронтенда
+
+> **Статус:** рабочая документация · **Обновлено:** 2026-07-03  
+> **Аудитория:** frontend / BFF / product UX · **Для передачи фронтам:** этот файл — **единственный** артефакт по federation UI (остальные docs — внутренние для backend).
+
+Документ описывает, как UI СРВИ работает с федеративными камерами: каталог, карта, плеер, ППУВ, admin federation. Региональные камеры выглядят как локальные, но с `origin` metadata. **Транспорт между платформами (PeerFgs)** на backend — UI об этом не знает.
+
+---
+
+## Оглавление
+
+1. [Главный принцип](#1-главный-принцип-для-ui)
+   - [1.1 Маршрутизация: куда ходит UI](#11-маршрутизация-куда-ходит-ui)
+2. [Карта экранов и новые страницы](#2-карта-экранов-и-новые-страницы)
+3. [Feature gates и permissions](#3-feature-gates-и-permissions)
+4. [Справочник API (все endpoints для UI)](#4-справочник-api-все-endpoints-для-ui)
+5. [Модели данных (`origin`, ids)](#5-модели-данных-origin-ids)
+6. [Каталог: карта, список, дерево, теги](#6-каталог-карта-список-дерево-теги)
+7. [Плеер: live, архив, extract](#7-плеер-live-архив-extract)
+8. [ППУВ на federated camera](#8-ппув-на-federated-camera)
+   - [8.4 Резервирование архива (reserve)](#84-резервирование-архива-reserve)
+9. [Lasso / batch / geo-search-resolve](#9-lasso--batch--geo-search-resolve)
+10. [Federation Admin](#10-federation-admin)
+11. [Состояния jobs и polling](#11-состояния-jobs-и-polling)
+12. [Ошибки и degraded UX](#12-ошибки-и-degraded-ux)
+13. [Пошаговые рецепты интеграции](#13-пошаговые-рецепты-интеграции)
+14. [TypeScript / контракты](#14-typescript--контракты)
+15. [Regression и чеклист готовности](#15-regression-и-чеклист-готовности)
+16. [Frontend TODO](#16-frontend-todo)
+17. [Инструкция для ИИ-агента](#17-инструкция-для-ии-агента)
+
+---
+
+## 1. Главный принцип для UI
+
+Frontend СРВИ **не ходит в региональные платформы** и не делает fan-out.
+
+```text
+Frontend СРВИ
+  → API Gateway СРВИ
+  → ENM:   каталог, карта, дерево, теги, geo-search-resolve
+  → SB:    playback / snapshot / archive timeline
+  → RSM:   locks / journal / batch / extract facade
+  → FGS:   только admin federation (installations, sync)
+```
+
+| Правило | Пояснение |
+|---------|-----------|
+| Все `cameraId` / `streamId` в UI — **локальные GUID СРВИ** | Regional ids только в `origin.sourceId` (read-only) |
+| Один запрос на карту / список | Не merge с регионов на клиенте |
+| Плеер не знает про FGS | Те же SB/RSM URL, что для local |
+| Admin federation — отдельный раздел | Требует license `FEDERATION` |
+
+### 1.1. Маршрутизация: куда ходит UI
+
+Все запросы — **на API Gateway СРВИ** с `Authorization: Bearer <user-jwt>`. Gateway мапит префиксы на сервисы; UI **не** вызывает regional host:port напрямую.
+
+| Задача UI | Сервис | Префикс gateway | Примеры |
+|-----------|--------|-----------------|---------|
+| Карта, галерея, дерево, теги, lasso preview | ENM | `/entities/api/v1/` | `POST .../map/geo-search`, `.../map/geo-search-resolve`, `.../cameras/gallery-filter` |
+| Live, архив, сегменты таймлайна | SB | `/balancer/api/v1/` | `POST .../playback/urls`, `GET .../streams/{streamId}/archive/segments` |
+| Locks, batch, журнал ППУВ | RSM | `/rsm/api/v1/` | `POST .../locks/acquire`, `POST .../locks/batch/geo-jobs` |
+| Federation status, extract (facade) | RSM | `/rsm/api/v1/federation/` | `GET .../status`, `POST .../archive/extract` |
+| Admin: регионы, sync, reserve, FullCopy | FGS | `/federation/` | `GET .../installations`, `POST .../installations/{id}/probe` |
+| Лицензия | LCS | `/licenses/` | `GET .../license/status` → `features.FEDERATION` |
+
+```text
+/federation/{path}  →  FGS /api/v1/{path}     (не дублировать api/v1 в URL gateway!)
+/entities/...       →  ENM
+/balancer/...       →  SB
+/rsm/...            →  RSM
+```
+
+**S2S-only (не из браузера):** `/federation/locks/*`, `/federation/playback/*`, `/federation/ptz/*` — вызывают SB/RSM/FGS service principal, не user JWT.
+
+**Iter 3 (PeerFgs):** при регистрации региона в admin достаточно `federationGatewayBaseUrl` + OAuth; direct URL сервисов региона backend заполняет autofill (см. [§10](#10-federation-admin)).
+
+## 2. Карта экранов и новые страницы
+
+### 2.1. Существующие экраны (изменения поведения)
+
+| Экран | Что меняется |
+|-------|--------------|
+| **Карта** | Federated камеры в тех же clusters; фильтр по региону; lasso → preview → batch lock |
+| **Галерея / список камер** | Badge `origin.regionName`; read-only для projection; фильтр `federationRegionId` |
+| **Дерево объектов** | Root «Регион: …»; read-only nodes; suffix имени при коллизии |
+| **Фильтр по тегам** | `Двор (Пермь)` — не merge по имени |
+| **Плеер (live + архив)** | Те же API; не отключать архив для `FederatedProjection` |
+| **ППУВ панель** | Remote statuses (`PendingRemote`, …); `durationSeconds` обязателен |
+| **Журнал ППУВ** | Federated ops с `regionName` в деталях (если backend отдаёт) |
+
+### 2.2. Новые экраны / модули (рекомендуется)
+
+#### A. Federation Admin — «Регионы» (`/admin/federation` или аналог)
+
+**Назначение:** CRUD peer-регионов, probe, manual catalog sync, enable/disable региона.
+
+| Блок UI | Метод | Путь (gateway) |
+|---------|-------|----------------|
+| Таблица регионов | GET | `/federation/installations` |
+| Карточка региона | GET | `/federation/installations/{id}` |
+| Создать | POST | `/federation/installations` |
+| Редактировать | PUT | `/federation/installations/{id}` |
+| Вкл/выкл региона | PATCH | `/federation/installations/{id}/status` |
+| Probe | POST | `/federation/installations/{id}/probe` |
+| Sync now | POST | `/federation/installations/{id}/catalog/sync` |
+| Progress sync | GET | `/federation/installations/{id}/catalog/sync/{operationId}` |
+
+**Колонки таблицы:** Name, Status (`Enabled`/`Disabled`), Health (последний probe), Last sync, Camera count (опционально из ENM), Last error.
+
+**Detail drawer / wizard:** см. [§10.2](#102-создание-и-редактирование-региона-iter-3); кнопки Probe / Sync / Enable / Disable.
+
+**Gate:** `hasFederationLicense` — без лицензии страница скрыта, запросы не отправлять.
+
+#### B. Federation Health widget (dashboard или шапка admin)
+
+Компактный статус без полного admin:
+
+```http
+GET /rsm/api/v1/federation/status
+```
+
+Показать: FGS configured, список регионов Online/Degraded/Offline, последняя ошибка sync.
+
+#### C. Lasso preview modal (карта, **новое в iter 2**)
+
+После рисования фигуры (polygon / rectangle / circle) — **до** блокировки:
+
+1. `POST /entities/api/v1/map/geo-search-resolve` — preview
+2. Модалка: total, breakdown по регионам, warning если `exceedsLassoLimit`
+3. Кнопка «Заблокировать» → `POST /rsm/api/v1/locks/batch/geo-jobs`
+
+**Не показывать** полный список из сотен камер в MVP — достаточно summary.
+
+#### D. Batch job progress (lasso / multi-select)
+
+После `202` от `batch/geo-jobs` или `batch/jobs`:
+
+- Toast «Операция запущена»
+- Drawer / modal с poll `GET /rsm/api/v1/locks/batch/jobs/{batchJobId}`
+- Grouped result по `regionSummary[]`
+
+#### E. Archive extract progress (federated)
+
+После старта extract:
+
+- Poll `GET /rsm/api/v1/federation/archive/extract/{jobId}`
+- По `Completed` — ссылка на RFM `MediaItem` (обычный UX загрузок)
+
+#### F. Operation jobs (опционально, post-MVP)
+
+Internal view: catalog sync jobs, failed remote locks — если появится публичный API; пока только через admin sync status.
+
+### 2.3. Навигация (рекомендация)
+
+```text
+Настройки / Администрирование
+  └── Федерация
+        ├── Регионы          (таблица installations)
+        ├── Состояние        (health widget / status page)
+        └── (будущее) Jobs
+
+Карта
+  └── Lasso toolbar
+        ├── Нарисовать область
+        ├── Preview (modal)   ← geo-search-resolve
+        └── Заблокировать     ← batch/geo-jobs
+```
+
+---
+
+## 3. Feature gates и permissions
+
+### 3.1. License features
+
+| Feature | Источник | Влияние на UI |
+|---------|----------|---------------|
+| `FEDERATION` | `GET /licenses/license/status` → `features["FEDERATION"]` | Admin `/federation/*`, badges, фильтр региона |
+| `PPUV` | LCS | ППУВ кнопки и locks |
+
+```text
+federationAdminUi   = hasFederationLicense
+federationCatalogUi = hasFederationLicense && hasConfiguredPeers
+federationPpuvUi    = hasFederationLicense && hasPpuvLicense && userHasPpuvOperate
+```
+
+`GET /rsm/api/v1/federation/status` или непустой `GET /federation/installations` → `hasConfiguredPeers`.
+
+### 3.2. JWT scopes (ППУВ)
+
+| Scope | UI |
+|-------|-----|
+| `ppuv:operate` | Acquire/release locks |
+| `ppuv:stream-block` | StreamBlock |
+| `ppuv:archive:seize` | Archive lock |
+| `ppuv:preempt` | Preempt (если есть в продукте) |
+
+Federation **не добавляет** отдельных user scopes — remote вызовы идут service principal через FGS.
+
+### 3.3. RM (права на каталог)
+
+Projected tree-nodes **не наследуются** автоматически. Для видимости federated камер на карте/в списке админ RM должен выдать **allow** на корневой federated tree-node региона (и при фильтрации по тегам — на projected tags). См. [TESTING.md §11.3](../testing/TESTING.md).
+
+### 3.4. При `FEDERATION=off`
+
+- Скрыть admin federation, фильтр региона, badges
+- Не вызывать `/federation/*` (gateway → `403 FederationFeatureNotLicensed`)
+- Карта/список/плеер — как обычная локальная платформа
+
+---
+
+## 4. Справочник API (все endpoints для UI)
+
+Префиксы — **через API Gateway СРВИ**. Все запросы с `Authorization: Bearer <user-jwt>` unless noted.
+
+### 4.1. ENM — каталог и карта (`/entities/api/v1/`)
+
+| Метод | Путь | Когда вызывать |
+|-------|------|----------------|
+| POST | `/entities/api/v1/map/geo-search` | Кластеры на карте (zoom/pan) |
+| POST | `/entities/api/v1/map/geo-search-resolve` | **Preview lasso** — полный список камер в фигуре |
+| POST | `/entities/api/v1/map/suggest` | Поиск на карте |
+| POST | `/entities/api/v1/cameras/gallery-filter` | Галерея / список |
+| GET | `/entities/api/v1/tree-nodes` | Дерево |
+| GET | `/entities/api/v1/tags/dictionary` | Словарь тегов |
+
+**Фильтры federation** (в body `gallery-filter` и `geo-search`):
+
+| Поле | Тип | Пример |
+|------|-----|--------|
+| `federationRegionId` | `guid?` | Только камеры региона |
+| `federationOriginTypes` | `string[]` | `["Local"]`, `["FederatedProjection"]` |
+
+### 4.2. SB — playback (`/balancer/api/v1/`)
+
+| Метод | Путь | Назначение |
+|-------|------|------------|
+| POST | `/balancer/api/v1/playback/urls` | Live + archive bounds (`mode`: Live / Archive / All) |
+| GET | `/balancer/api/v1/streams/{streamId}/archive/segments` | Сегменты таймлайна |
+
+Всегда **локальный** `streamId` из `availableStreams`.
+
+### 4.3. RSM — locks и batch (`/rsm/api/v1/`)
+
+| Метод | Путь | Назначение |
+|-------|------|------------|
+| POST | `/rsm/api/v1/locks/acquire` | StreamBlock / PTZ / Archive |
+| POST | `/rsm/api/v1/locks/{leaseId}/release` | Снятие lock |
+| GET | `/rsm/api/v1/locks/{cameraId}/status` | Статус (`?lockType=Ptz` default) |
+| GET | `/rsm/api/v1/locks/{cameraId}/archive` | Archive locks в окне `?from=&to=` |
+| POST | `/rsm/api/v1/locks/batch/jobs` | Batch по списку `cameraIds` |
+| POST | `/rsm/api/v1/locks/batch/geo-jobs` | **Lasso** — фигура → resolve → batch |
+| GET | `/rsm/api/v1/locks/batch/jobs/{batchJobId}` | Статус batch job |
+
+### 4.4. RSM — federation facade (`/rsm/api/v1/federation/`)
+
+Удобная обёртка над FGS для UI (тот же JWT):
+
+| Метод | Путь | Назначение |
+|-------|------|------------|
+| GET | `/rsm/api/v1/federation/status` | Health / configured peers |
+| POST | `/rsm/api/v1/federation/archive/extract` | Старт extract job |
+| GET | `/rsm/api/v1/federation/archive/extract/{jobId}` | Статус extract |
+| POST | `/rsm/api/v1/federation/archive/extract/{jobId}/retry` | Retry |
+
+### 4.5. FGS — admin (`/federation/` → gateway → FGS `/api/v1/`)
+
+| Метод | Путь (gateway) | Назначение |
+|-------|----------------|------------|
+| GET | `/federation/health` | Health FGS |
+| GET | `/federation/installations` | Список регионов |
+| GET | `/federation/installations/{id}` | Карточка региона |
+| POST | `/federation/installations` | Создание региона |
+| PUT | `/federation/installations/{id}` | Обновление |
+| PATCH | `/federation/installations/{id}/status` | `Enabled` / `Disabled` |
+| POST | `/federation/installations/{id}/probe` | Composite probe peer |
+| POST | `/federation/installations/{id}/catalog/sync` | Manual catalog sync |
+| GET | `/federation/installations/{id}/catalog/sync/{operationId}` | Sync job status |
+| POST | `/federation/media-plans/reserve` | Включить reserve |
+| GET | `/federation/media-plans/{planId}` | Статус reserve / FullCopy |
+| POST | `/federation/media-plans/{planId}/disable` | Отменить reserve |
+| DELETE | `/federation/media-plans/{planId}` | Cleanup plan |
+| POST | `/federation/media-plans/full-copy` | FullCopy |
+
+**Не вызывать из плеера/операторского UI:** `/federation/locks/*`, `/federation/playback/*`, `/federation/ptz/*` — S2S.
+
+### 4.6. RFM (`/rfm/`)
+
+После extract — обычный UX `MediaItem` (без federation metadata для пользователя).
+
+---
+
+## 5. Модели данных (`origin`, ids)
+
+### 5.1. `FederationOriginDto` (поле `origin` в ENM)
+
+```typescript
+interface FederationOriginDto {
+  isFederated: boolean;
+  originType: 'Local' | 'FederatedProjection' | 'FederatedCopy';
+  regionId: string | null;      // installation GUID в FGS
+  regionName: string | null;    // для badge в UI
+  sourceId: string | null;      // remote camera id — не использовать в API
+  syncStatus: 'Active' | 'Stale' | 'SyncError' | null;
+  lastSyncedAt: string | null;
+  syncGeneration: number | null;
+  reserveStreamId: string | null;
+}
+```
+
+### 5.2. Origin types
+
+| `originType` | Badge | Редактирование каталога |
+|--------------|-------|------------------------|
+| `Local` | — или «СРВИ» | Полное |
+| `FederatedProjection` | `Регион: {regionName}` | Read-only |
+| `FederatedCopy` | `Копия: {regionName}` | Ограниченное (post-F8) |
+
+### 5.3. Sync status
+
+| `syncStatus` | UI |
+|--------------|-----|
+| `Active` | OK |
+| `Stale` | Warning — камера удалена/изменена в регионе |
+| `SyncError` | Degraded |
+
+### 5.4. ID discipline
+
+```text
+UI хранит и передаёт:     cameraId, streamId, tagId, treeNodeId  (локальные СРВИ)
+UI только отображает:     origin.regionName, origin.syncStatus
+UI никогда не отправляет: origin.sourceId, regional streamId
+```
+
+---
+
+## 6. Каталог: карта, список, дерево, теги
+
+### 6.1. Карта — `geo-search`
+
+```http
+POST /entities/api/v1/map/geo-search
+```
+
+Один запрос покрывает local + все projections. Не делать fan-out в регионы.
+
+Опционально в будущем: `sourceSummary` в cluster DTO для mixed-region clusters.
+
+### 6.2. Галерея — `gallery-filter`
+
+Projection camera выглядит как обычная:
+
+```json
+{
+  "id": "local-projection-camera-id",
+  "name": "Камера 12",
+  "availableStreams": [{ "streamId": "local-projection-stream-id", "name": "Main" }],
+  "origin": {
+    "isFederated": true,
+    "originType": "FederatedProjection",
+    "regionName": "Пермь",
+    "syncStatus": "Active"
+  }
+}
+```
+
+### 6.3. Фильтр по источнику
+
+```text
+Источник: [ Все | СРВИ | Пермь | Самара | … ]
+```
+
+| UI выбор | Body |
+|----------|------|
+| Все | без фильтров federation |
+| СРВИ | `federationOriginTypes: ["Local"]` |
+| Регион X | `federationRegionId: "<installation-guid>"` |
+| Только копии | `federationOriginTypes: ["FederatedCopy"]` |
+
+### 6.4. Дерево и теги
+
+- Root «Регион: {name}» с badge
+- При совпадении имён: `Район 1 (Пермь)`
+- Projected nodes — read-only (no drag/edit/delete)
+- Теги: `Двор (Пермь)` в фильтрах
+
+---
+
+## 7. Плеер: live, архив, extract
+
+### 7.1. Принцип
+
+Federated projection = **те же endpoints**, local ids:
+
+| Действие | Endpoint | ID |
+|----------|----------|-----|
+| URLs | `POST .../playback/urls` | local `streamId` |
+| Segments | `GET .../streams/{streamId}/archive/segments` | local `streamId` |
+| Archive lock | `POST .../locks/acquire` | local `cameraId` |
+
+### 7.2. Что НЕ делать
+
+- Не отключать архив для `FederatedProjection`
+- Не подставлять regional `streamId`
+- Не вызывать FGS playback из плеера
+- Не скрывать вкладку архива из‑за `VideoServer` типа `FederatedRemote`
+
+### 7.3. Archive lock на таймлайне
+
+1. Загрузить таймлайн (`playback/urls` + `archive/segments`)
+2. Выделить интервал
+3. `POST /rsm/api/v1/locks/acquire`:
+
+```json
+{
+  "resourceId": "<local-camera-id>",
+  "lockType": "Archive",
+  "startTime": "2026-06-29T10:00:00Z",
+  "endTime": "2026-06-29T11:00:00Z",
+  "durationSeconds": 3600,
+  "idempotencyKey": "uuid"
+}
+```
+
+**`durationSeconds` обязателен** (рекомендуется `3600`). Без поля → HTTP 400.
+
+**Одна активная Archive lock на камеру (v1).** Второй acquire с другим интервалом **заменяет** первую.
+
+Отрисовка заблокированных зон:
+
+```http
+GET /rsm/api/v1/locks/{cameraId}/archive?from={iso}&to={iso}
+```
+
+Передавайте видимое окно плеера (лимит ~90 суток).
+
+### 7.4. Regional signed URL
+
+`hlsUrl` для federated — хост **региона**. Браузер оператора должен достучаться до regional URL (firewall — инфраструктура).
+
+### 7.5. Extract
+
+1. Выбор интервала на federated timeline
+2. `POST /rsm/api/v1/federation/archive/extract` с **`ownerUserId`** текущего пользователя
+3. Poll `GET .../archive/extract/{jobId}`
+4. `Completed` → файл в RFM как обычный `MediaItem`
+
+---
+
+## 8. ППУВ на federated camera
+
+Те же RSM endpoints, local `resourceId`.
+
+### 8.1. StreamBlock
+
+```json
+{
+  "resourceId": "local-camera-projection-id",
+  "lockType": "StreamBlock",
+  "durationSeconds": 3600,
+  "idempotencyKey": "..."
+}
+```
+
+Backend создаёт remote lock на регионе + coupled archive lock.
+
+### 8.2. PTZ
+
+Acquire → команды через backend. UI не знает regional DCS URL.
+
+### 8.3. Remote statuses (показывать в UI)
+
+| Status | UX |
+|--------|-----|
+| `PendingRemote` | Spinner «Применяется в регионе…» |
+| `Active` | OK |
+| `RemoteFailed` | Error + retry |
+| `Compensating` | «Откат…» |
+| `PartialSuccess` | Batch/lasso grouped view |
+
+### 8.4 Резервирование архива (reserve)
+
+Подробная backend-семантика: [BACKEND.md § Reserve media plan](BACKEND.md#reserve-media-plan).
+
+#### Что показывать оператору
+
+Reserve — **отдельное действие** от StreamBlock. Оператор заранее включает параллельную запись на MSS СРВИ; гражданский регион продолжает видеть live/архив как обычно.
+
+| UX | Рекомендация |
+|----|----------------|
+| Кнопка | «Резервировать архив» / «Включить reserve» на `FederatedProjection` камере |
+| Условие | `origin.originType === 'FederatedProjection'`, нет активного reserve (`origin.reserveStreamId == null`) |
+| После включения | Badge «Reserve активен»; сохранить **`planId`** из ответа |
+| Отмена | «Отключить reserve» → `POST .../media-plans/{planId}/disable` |
+| `retentionSeconds` | Опционально в форме; объяснение: «глубина локального архива (последние N секунд)», **не** «автовыключение через N секунд» |
+
+#### Создание
+
+```http
+POST /federation/media-plans/reserve
+Content-Type: application/json
+
+{
+  "localCameraId": "<локальный cameraId из ENM>",
+  "localVideoServerId": "<guid VideoServer MSS на СРВИ>",
+  "retentionSeconds": 86400
+}
+```
+
+- `localCameraId` — тот же id, что в карте/плеере/RSM (не regional id).
+- `localVideoServerId` — выбор оператора или default из настроек ППУВ.
+- `regionId` / `remoteCameraId` / каталог **не нужны**.
+
+**Response:** сохранить `result.planId` и `result.reserveStreams[]` (для multi-stream камер).
+
+#### Отмена (обязательно по `planId`)
+
+```http
+POST /federation/api/v1/media-plans/{planId}/disable
+```
+
+Альтернатива: `DELETE /federation/api/v1/media-plans/{planId}` (для reserve тот же эффект).
+
+Проверка:
+
+```http
+GET /federation/api/v1/media-plans/{planId}
+```
+
+Ожидание после отмены: `status: "Disabled"`, `finishedAt` заполнен.
+
+#### Жизненный цикл (для подсказок в UI)
+
+```text
+[Нет reserve] --POST reserve--> [Active, пишется на MSS]
+[Active] --скользящее окно retention--> архив: всегда последние N секунд
+[Active] --POST disable--> [Disabled, reserve streams удалены из ENM]
+```
+
+Plan **не** переходит в `Disabled` сам по таймеру `retentionSeconds`.
+
+#### TypeScript (фрагмент)
+
+```typescript
+interface CreateReserveMediaPlanRequest {
+  localCameraId: string;
+  localVideoServerId: string;
+  federationOperationId?: string | null;
+  retentionSeconds?: number | null;
+}
+
+interface FederationMediaPlanResponse {
+  planId: string;
+  kind: 'Reserve' | 'FullCopy';
+  status: 'Active' | 'Disabled' | 'Failed' | 'Disabling' | 'CleaningUp' | 'Provisioning' | 'Pending';
+  localCameraId: string;
+  reserveStreams: Array<{
+    localProjectionStreamId: string;
+    localReserveStreamId: string;
+    remoteStreamId: string;
+  }>;
+  finishedAt: string | null;
+}
+```
+
+#### Ошибки
+
+| Код / сообщение | UI |
+|-----------------|-----|
+| `ReserveStreamAlreadyExists` | «Reserve уже включён для этой камеры» |
+| `CameraIsNotFederatedProjection` | Скрыть действие или disabled tooltip |
+| `LocalVideoServerIdRequired` | Валидация формы |
+
+---
+
+## 9. Lasso / batch / geo-search-resolve
+
+Лимит: **300 камер** на одну операцию (default в коде ENM/RSM; UI берёт из `limits.maxCamerasPerLasso` в preview).
+
+### 9.1. Почему не `geo-search`
+
+`geo-search` возвращает **кластеры**, не полный список `cameraId`. Для lasso нужен отдельный resolve.
+
+### 9.2. Flow (вариант A, iter 2)
+
+```text
+1. Пользователь рисует фигуру на карте
+2. POST /entities/api/v1/map/geo-search-resolve     ← preview
+3. Модалка: total, byRegion, exceedsLassoLimit
+4. Если OK → POST /rsm/api/v1/locks/batch/geo-jobs   ← execute
+5. Poll GET /rsm/api/v1/locks/batch/jobs/{id}
+```
+
+### 9.3. `geo-search-resolve` — request
+
+Тот же body, что `geo-search` (`MapGeoSearchRequest`):
+
+```json
+{
+    "searchArea": {
+      "$type": "polygon",
+      "zoom": 15,
+      "vertices": [
+        { "latitude": 55.1, "longitude": 37.1 },
+        { "latitude": 55.2, "longitude": 37.2 },
+        { "latitude": 55.0, "longitude": 37.3 }
+      ]
+  },
+  "deviceTypes": ["Camera"],
+  "federationRegionId": null,
+  "federationOriginTypes": null
+}
+```
+
+Фигуры: `polygon`, `rectangle`, `circle` — как в `geo-search`.
+
+### 9.4. `geo-search-resolve` — response
+
+```json
+{
+  "cameras": [
+    {
+      "cameraId": "...",
+      "originType": "FederatedProjection",
+      "regionId": "...",
+      "regionName": "Пермь"
+    }
+  ],
+  "totalCameras": 12,
+  "summary": {
+    "byOriginType": { "Local": 3, "FederatedProjection": 9 },
+    "byRegion": [
+      { "regionId": null, "regionName": "Local", "count": 3 },
+      { "regionId": "...", "regionName": "Пермь", "count": 5 },
+      { "regionId": "...", "regionName": "Самара", "count": 4 }
+    ]
+  },
+  "limits": {
+    "maxCamerasPerLasso": 300,
+    "exceedsLassoLimit": false
+  }
+}
+```
+
+| Поле | Действие UI |
+|------|-------------|
+| `totalCameras` | Заголовок модалки «Найдено N камер» |
+| `summary.byRegion` | Таблица breakdown по регионам |
+| `limits.exceedsLassoLimit === true` | **Disable** кнопку «Заблокировать»; текст «Максимум N, сузьте область» (`N` = `limits.maxCamerasPerLasso`) |
+| `cameras[]` | Опционально expandable list (до лимита); в MVP достаточно summary |
+
+Permissions: те же, что `geo-search` (`camera:read` + RM на federated nodes).
+
+### 9.5. `batch/geo-jobs` — request
+
+```json
+{
+  "geoSearchRequest": { "...тот же JSON что в resolve..." },
+  "lockType": "StreamBlock",
+  "operation": "Acquire",
+  "durationSeconds": 3600,
+  "idempotencyKey": "lasso-uuid"
+}
+```
+
+`durationSeconds` **обязателен**.
+
+При превышении лимита RSM вернёт `400` (resolve на backend повторяется). UI должен предотвращать это через preview.
+
+### 9.6. Preview modal — wireframe
+
+```text
+┌─ Массовая блокировка ─────────────────────────┐
+│ В области: 23 камеры                            │
+│                                                 │
+│  СРВИ          5                                │
+│  Пермь        12                                │
+│  Самара        6                                │
+│                                                 │
+│  Тип: StreamBlock   Длительность: [1 час ▼]    │
+│                                                 │
+│         [ Отмена ]  [ Заблокировать ]           │
+└─────────────────────────────────────────────────┘
+```
+
+Если `exceedsLassoLimit`:
+
+```text
+│ ⚠ В области 373 камеры. Максимум — 300.          │
+│   Уменьшите область и повторите.                │
+│         [ OK ]                                  │
+```
+
+### 9.7. Grouped result после batch
+
+```text
+Пермь:     заблокировано 18, ошибка 2
+Самара:    заблокировано 10
+СРВИ:      заблокировано 5
+```
+
+Источник: `regionSummary[]` в `GET batch/jobs/{id}`.
+
+---
+
+## 10. Federation Admin
+
+### 10.1. Список installations
+
+```http
+GET /federation/installations
+Authorization: Bearer <admin-jwt>
+```
+
+Требует license `FEDERATION`. Ответ: `ApiResponse<InstallationResponse[]>`.
+
+Используйте `id` региона как `federationRegionId` в фильтрах каталога и как `origin.regionId` в ENM.
+
+### 10.2. Создание и редактирование региона (iter 3)
+
+**Минимальная форма (основной сценарий «коробка»):**
+
+| Поле | Обязательно | UI |
+|------|-------------|-----|
+| `name` | да | Текст, уникальное имя региона |
+| `federationGatewayBaseUrl` | да | URL peer FGS региона, напр. `http://192.168.1.109:8132` |
+| `clientId` | да* | OAuth S2S principal СРВИ на регионе |
+| `clientSecret` | при create | Пароль; при edit пусто = не менять |
+| `clientScopes` | рекомендуется | Scopes RM региона |
+
+\* Для работы sync/locks backend ожидает credentials; без них probe может пройти, sync — нет.
+
+**Autofill (backend):** если не передать `entitiesBaseUrl`, `streamerBalancerBaseUrl`, `resourceStateManagementBaseUrl`, `deviceControlServiceBaseUrl`, `tokenUrl` — они выводятся с того же хоста, что `federationGatewayBaseUrl`, и портов compose (8102, 8116, 8130, 8112, 8100/connect/token). **В основной форме эти поля не показывать.**
+
+**Расширенные настройки (collapsible «Нестандартная топология»):**
+
+| Поле | Когда нужно |
+|------|-------------|
+| `entitiesBaseUrl` | ENM не на стандартном порту |
+| `streamerBalancerBaseUrl`, `resourceStateManagementBaseUrl`, `deviceControlServiceBaseUrl` | Rollback `DirectServices` / нестандартные порты |
+| `tokenUrl` | RM не на `:8100` |
+| `certificateThumbprint`, `requireMutualTls`, `allowedNetworks` | mTLS / hardening |
+| `role` | Обычно `Region` (default) |
+
+**Пример create (минимум):**
+
+```http
+POST /federation/installations
+Content-Type: application/json
+
+{
+  "name": "Регион Северо-Запад",
+  "federationGatewayBaseUrl": "http://192.168.1.109:8132",
+  "clientId": "srvi-federation",
+  "clientSecret": "<secret>",
+  "clientScopes": "federation"
+}
+```
+
+**После создания (wizard):**
+
+1. `POST /federation/installations/{id}/probe` — показать результат (§10.3)
+2. Если `serviceChecks` → `FederationGateway.Reachable` — `POST .../catalog/sync` с `{}`
+3. Poll `GET .../catalog/sync/{operationId}` до `Completed` / `Failed`
+4. Обновить список камер на карте (projections появятся после sync)
+
+**Редактирование:** `PUT /federation/installations/{id}` — те же поля; пустой `clientSecret` не перезаписывает secret. Пустой `federationGatewayBaseUrl` в PUT сохраняет текущий URL.
+
+**Enable / Disable:**
+
+```http
+PATCH /federation/installations/{id}/status
+{ "status": "Disabled" }
+```
+
+Disabled регион не участвует в новых S2S; projections в ENM остаются (со `Stale` при долгом простое).
+
+### 10.3. Probe — отображение в UI
+
+```http
+POST /federation/installations/{id}/probe
+```
+
+| Поле ответа | UI |
+|-------------|-----|
+| `reachable` | Иконка Online / Offline / Partial |
+| `remoteStatus` | `Healthy` / `Partial` / `Unavailable` |
+| `remoteMode` | Ожидается `Region` на peer FGS |
+| `remoteEnabled` | Federation включена на регионе |
+| `serviceChecks[]` | Таблица: Service, Status, Reachable, Error |
+
+Приоритет для badge в списке: **`FederationGateway`** check (`service === 'FederationGateway'`). Остальные checks (ENM, RSM, SB) — диагностика в detail drawer.
+
+| `serviceChecks[].status` | Badge |
+|--------------------------|-------|
+| `Healthy` | зелёный |
+| `NotConfigured` | серый «не задан URL» |
+| `Unavailable` | красный + `error` |
+
+### 10.4. Sync progress
+
+```http
+POST /federation/installations/{id}/catalog/sync
+Body: {}
+
+GET /federation/installations/{id}/catalog/sync/{operationId}
+```
+
+| `status` | UI |
+|----------|-----|
+| `Running` | Progress + `processedCameras` |
+| `Completed` | Success; показать `projectedStreams`, `staleCameras` |
+| `Failed` / `Partial` | Warning; список `errors[]` |
+
+**Транспорт прогресса sync:**
+
+| Этап | Механизм |
+|------|----------|
+| **Сейчас (MVP)** | Polling `GET .../catalog/sync/{operationId}` каждые 2–5 с |
+| **Следующая итерация** | **WebSocket** — push обновлений `CatalogSyncResponse` без poll |
+
+Заложи в UI слой подписки на прогресс sync (интерфейс `subscribeCatalogSync(operationId)`): реализация poll сейчас, WebSocket — при появлении endpoint на gateway/FGS.
+
+| Компонент | Описание |
+|-----------|----------|
+| `FederationRegionsPage` | Таблица + фильтр по status |
+| `FederationRegionForm` | Wizard create/edit (§10.2) |
+| `FederationRegionProbePanel` | Результат probe + кнопка «Проверить снова» |
+| `FederationCatalogSyncModal` | Прогресс sync: poll сейчас, WebSocket — следующая итерация (§10.4) |
+| `FederationHealthWidget` | Компактный вид: `GET /rsm/api/v1/federation/status` |
+
+---
+
+## 11. Состояния jobs и polling
+
+### 11.1. Batch lock job
+
+```http
+POST .../batch/geo-jobs  → 202 { batchJobId }
+GET  .../batch/jobs/{batchJobId}
+```
+
+| `status` | UI |
+|----------|-----|
+| `Queued` / `Running` | Progress spinner, poll 2–5 с |
+| `Completed` | Grouped summary |
+| `Partial` | Warning + `regionSummary` |
+| `Failed` | Error message |
+
+### 11.2. Extract job
+
+```http
+POST /rsm/api/v1/federation/archive/extract
+GET  /rsm/api/v1/federation/archive/extract/{jobId}
+```
+
+| `status` | UI |
+|----------|-----|
+| `Pending` / `Running` | «Извлечение…» |
+| `Completed` | Link to RFM |
+| `Failed` | Retry button → `POST .../retry` |
+
+### 11.3. Catalog sync job
+
+| Этап | Механизм |
+|------|----------|
+| Сейчас | Poll `GET /federation/installations/{id}/catalog/sync/{operationId}` на admin-странице |
+| Следующая итерация | WebSocket — подписка на прогресс по `operationId` (контракт будет дополнен) |
+
+До появления WS — polling. После — предпочитать WS, poll оставить как fallback.
+
+---
+
+## 12. Ошибки и degraded UX
+
+| Состояние | Где | UX |
+|-----------|-----|-----|
+| `RegionUnavailable` | player, карточка | Grey badge, retry |
+| `StaleProjection` | карточка | Warning; playback может работать |
+| `RemoteLockFailed` | ППУВ action | Error + retry |
+| `PartialBatchSuccess` | lasso modal | Grouped by region |
+| `exceedsLassoLimit` | preview modal | Block action |
+| `FederationFeatureNotLicensed` | admin | Hide section |
+| `CatalogSyncFailed` | admin | Warning on region row |
+
+---
+
+## 13. Пошаговые рецепты интеграции
+
+### Рецепт 1: Показать federated камеру на карте
+
+1. Gate: `FEDERATION` + peers configured
+2. RM: allow на federated tree-node
+3. `POST geo-search` с viewport
+4. Рендер cluster/marker; badge если `origin.isFederated`
+5. Фильтр региона → передать `federationRegionId` в body
+
+### Рецепт 2: Live federated stream
+
+1. Из gallery взять local `streamId`
+2. `POST /balancer/api/v1/playback/urls` `{ streamId, mode: "Live" }`
+3. Play `hlsUrl`; обработать `RegionUnavailable`
+
+### Рецепт 3: Архив federated
+
+1. `playback/urls` mode `All` → `archiveSummary`
+2. `GET archive/segments` → отрисовка таймлайна
+3. Archive lock / extract — как local (§7)
+
+### Рецепт 4: Lasso mass lock
+
+1. Нарисовать фигуру
+2. `geo-search-resolve` → preview modal
+3. Если `!exceedsLassoLimit` → `batch/geo-jobs`
+4. Poll batch job → grouped result
+
+### Рецепт 5: Добавить регион (admin, iter 3)
+
+1. Gate `FEDERATION`
+2. `POST /federation/installations` — только `name`, `federationGatewayBaseUrl`, OAuth (§10.2)
+3. `POST .../probe` → убедиться `FederationGateway` = Healthy
+4. `POST .../catalog/sync` → poll operation
+5. `GET /federation/installations` — регион в списке; на карте projections после sync
+
+---
+
+## 14. TypeScript / контракты
+
+Рекомендуется единый модуль `federation/types.ts`:
+
+```typescript
+export type FederationOriginType =
+  | 'Local'
+  | 'FederatedProjection'
+  | 'FederatedCopy';
+
+export interface FederationOriginDto { /* §5.1 */ }
+
+export interface GeoSearchResolveResponse {
+  cameras: GeoSearchResolvedCamera[];
+  totalCameras: number;
+  summary: {
+    byOriginType: Record<string, number>;
+    byRegion: Array<{
+      regionId: string | null;
+      regionName: string;
+      count: number;
+    }>;
+  };
+  limits: {
+    maxCamerasPerLasso: number;
+    exceedsLassoLimit: boolean;
+  };
+}
+
+export interface CreateBatchGeoLockJobRequest {
+  geoSearchRequest: MapGeoSearchRequest;
+  lockType: 'StreamBlock' | 'Archive' | 'Ptz';
+  operation: 'Acquire' | 'Release';
+  durationSeconds: number;
+  idempotencyKey: string;
+}
+
+// --- Federation Admin (FGS via /federation/) ---
+
+export interface CreateInstallationRequest {
+  name: string;
+  federationGatewayBaseUrl: string;
+  clientId?: string;
+  clientSecret?: string;
+  clientScopes?: string;
+  /** Опционально; иначе autofill backend */
+  entitiesBaseUrl?: string;
+  streamerBalancerBaseUrl?: string;
+  resourceStateManagementBaseUrl?: string;
+  deviceControlServiceBaseUrl?: string;
+  tokenUrl?: string;
+  certificateThumbprint?: string;
+  requireMutualTls?: boolean;
+  allowedNetworks?: string;
+  role?: 'Region' | 'Srvi';
+}
+
+export interface InstallationResponse {
+  id: string;
+  name: string;
+  federationGatewayBaseUrl: string;
+  entitiesBaseUrl: string;
+  status: 'Enabled' | 'Disabled';
+  hasClientSecret: boolean;
+  clientId?: string;
+  tokenUrl?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface InstallationProbeResponse {
+  installationId: string;
+  reachable: boolean;
+  remoteStatus: 'Healthy' | 'Partial' | 'Unavailable';
+  remoteMode?: string;
+  remoteEnabled?: boolean;
+  error?: string;
+  serviceChecks: Array<{
+    service: 'FederationGateway' | 'Entities' | 'RSM' | 'StreamerBalancer';
+    baseUrl?: string;
+    reachable: boolean;
+    status: string;
+    error?: string;
+  }>;
+}
+
+export interface CatalogSyncResponse {
+  operationId: string;
+  status: 'Running' | 'Completed' | 'Failed' | 'Partial';
+  processedCameras: number;
+  projectedStreams: number;
+  failedCameras: number;
+  staleCameras: number;
+  errors: string[];
+}
+```
+
+Хелперы:
+
+```typescript
+function isFederatedProjection(origin?: FederationOriginDto): boolean {
+  return origin?.originType === 'FederatedProjection';
+}
+
+function catalogReadOnly(origin?: FederationOriginDto): boolean {
+  return origin?.originType === 'FederatedProjection';
+}
+
+function regionBadge(origin?: FederationOriginDto): string | null {
+  if (!origin?.isFederated) return null;
+  return origin.regionName ?? 'Регион';
+}
+```
+
+---
+
+## 15. Regression и чеклист готовности
+
+### 15.1. Regression (обязательно)
+
+- `FEDERATION=off` → нет federation UI
+- Local camera map/playback/PPUV без изменений
+- FGS down не ломает local cameras
+- Projection errors не на local cameras
+
+### 15.2. Backend readiness (перед включением фичи)
+
+| Область | Backend | UI |
+|---------|---------|-----|
+| `origin` в ENM | ✅ | badges, filters |
+| `federationRegionId` filter | ✅ | передать в запрос |
+| Federated playback + archive | ✅ | не skip projection |
+| `geo-search-resolve` | ✅ | preview modal |
+| `batch/geo-jobs` | ✅ | lasso flow |
+| RSM extract facade | ✅ | `ownerUserId`, poll |
+| FGS admin + license gate | ✅ | admin page (§10) |
+| Installation autofill (iter 3) | ✅ | форма без 4 URL |
+| `regionSummary[]` batch | ✅ | grouped UI |
+
+### 15.3. Чеклист перед архивом в плеере
+
+1. Deploy FGS + SB с federated archive segments
+2. `FederationGatewayApiClient__BaseUrl` на SB/RSM
+3. Catalog sync + `retentionSeconds` на projection streams
+4. E2E-22: `GET archive/segments` → 200
+5. Regional `hlsUrl` доступен с рабочего места оператора
+
+---
+
+## 16. Frontend TODO
+
+Задачи сгруппированы по приоритету. Backend для всех пунктов ниже **готов** (кроме отмеченных).
+
+### P0 — MVP federation (iter 1)
+
+Операторский контур: federated камеры на карте, плеер, ППУВ.
+
+- [ ] Feature gate `FEDERATION` + `GET /rsm/api/v1/federation/status` → `hasConfiguredPeers`
+- [ ] `FederationOriginDto` + хелперы (§14)
+- [ ] Badges: `regionName`, `Stale`, `SyncError` на карте и в галерее
+- [ ] Фильтр источника: `federationRegionId`, `federationOriginTypes[]` (§6.3)
+- [ ] Tree/tags: suffix `(regionName)`, read-only projection nodes
+- [ ] Плеер: live + архив для `FederatedProjection` (§7) — те же SB endpoints
+- [ ] Archive lock + `GET /rsm/api/v1/locks/{cameraId}/archive` на таймлайне
+- [ ] RSM remote statuses в ППУВ UI (`PendingRemote`, `RemoteFailed`, …)
+- [ ] Extract: `POST /rsm/api/v1/federation/archive/extract` с `ownerUserId`, poll job
+
+### P1 — Federation Admin (iter 3)
+
+| # | Задача | API / экран |
+|---|--------|-------------|
+| A1 | Страница «Регионы» | `GET /federation/installations` |
+| A2 | Форма create: `name` + `federationGatewayBaseUrl` + OAuth | `POST /federation/installations` |
+| A3 | Collapsible advanced URL (опционально) | те же POST/PUT |
+| A4 | Probe panel | `POST .../probe` → `serviceChecks` |
+| A5 | Catalog sync wizard | `POST .../catalog/sync` + прогресс (poll → WebSocket в след. итерации) |
+| A6 | Enable/Disable toggle | `PATCH .../status` |
+| A7 | Health widget (dashboard) | `GET /rsm/api/v1/federation/status` |
+
+### P1 — Карта / lasso (iter 2)
+
+| # | Задача | API |
+|---|--------|-----|
+| M1 | Lasso preview modal | `POST /entities/api/v1/map/geo-search-resolve` |
+| M2 | Кнопка «Заблокировать» после preview | `POST /rsm/api/v1/locks/batch/geo-jobs` |
+| M3 | `durationSeconds` обязателен (напр. 3600) | body batch job |
+| M4 | Блокировка при `exceedsLassoLimit` | `limits` в resolve response |
+| M5 | Batch progress + `regionSummary[]` | `GET .../batch/jobs/{id}` |
+
+### P2 — Reserve / FullCopy
+
+- [ ] Reserve UI на federated camera (§8.4): `POST /federation/media-plans/reserve`, disable по `planId`
+- [ ] FullCopy (post-MVP): `POST /federation/media-plans/full-copy`
+
+### P3 — Post-MVP
+
+- [ ] Catalog sync progress через **WebSocket** (замена/дополнение poll, §10.4)
+- [ ] Layout substitution на регионе
+- [ ] Публичный view operation jobs (catalog sync history)
+- [ ] Extract progress bar (улучшение UX poll)
+
+### Не делать на frontend
+
+- Прямые вызовы regional ENM/RSM/SB/DCS
+- `/federation/locks/*`, `/federation/playback/*` из браузера
+- Fan-out merge каталога с нескольких регионов на клиенте
+- Поля `entitiesBaseUrl` … в основной форме admin (iter 3 autofill)
+
+---
+
+## 17. Инструкция для ИИ-агента
+
+> **Контекст для агента:** в работу передаётся **только этот файл** (`FRONTEND.md`). Других документов federation (BACKEND, итерации, TESTING) у тебя нет — **не ссылайся на них и не предполагай, что они доступны**. Вся нужная спецификация API, моделей и задач — в §1–§16 этого же файла.
+
+Использование: прикрепи `@FRONTEND.md` к чату или положи файл в контекст проекта. Опционально: скопируй §17.2–17.5 в `.cursor/rules` фронтенд-репозитория.
+
+### 17.1. Когда применять
+
+Задача про federation UI, если затронуто **хотя бы одно** из:
+
+- federated камеры на карте / в галерее / дереве / тегах;
+- плеер или ППУВ на `FederatedProjection`;
+- lasso / batch lock;
+- admin «Регионы», catalog sync, probe;
+- reserve / FullCopy;
+- feature gate `FEDERATION`.
+
+**Где искать детали в этом файле:**
+
+| Тема | Раздел |
+|------|--------|
+| Куда ходить (gateway) | §1.1, §4 |
+| `origin`, ids | §5 |
+| Каталог, карта, фильтры | §6 |
+| Плеер, архив, extract | §7 |
+| ППУВ, reserve | §8 |
+| Lasso | §9 |
+| Admin регионы | §10 |
+| TypeScript контракты | §14 |
+| Список задач | §16 |
+
+### 17.2. Жёсткие правила (нарушение = неверная реализация)
+
+| ALWAYS | NEVER |
+|--------|-------|
+| Все запросы через **API Gateway СРВИ** с user JWT | Прямые вызовы regional host:port (ENM/RSM/SB/FGS региона) |
+| В API передавать **локальные** `cameraId`, `streamId` с СРВИ | `origin.sourceId`, regional stream/camera id |
+| Каталог: один запрос ENM (`geo-search`, `gallery-filter`) | Fan-out / merge каталога с регионов на клиенте |
+| Плеер: `/balancer/api/v1/playback/*` | `/federation/playback/*` из браузера |
+| Locks: `/rsm/api/v1/locks/*` | `/federation/locks/*` из браузера |
+| Admin: `/federation/installations` (без `api/v1` в path) | `/federation/api/v1/installations` |
+| Проверять license `FEDERATION` перед admin UI | Вызывать `/federation/*` без gate |
+| Installation create: `name` + `federationGatewayBaseUrl` + OAuth | Требовать 4–5 URL в основной форме (autofill на backend) |
+| Lasso: сначала `geo-search-resolve`, потом `batch/geo-jobs` | `batch/geo-jobs` без preview |
+| `durationSeconds` в acquire / batch (напр. `3600`) | Acquire без `durationSeconds` |
+
+**Транспорт PeerFgs** между платформами — только backend (FGS). UI об этом не знает и не конфигурирует.
+
+### 17.3. Шпаргалка маршрутизации
+
+```text
+Задача                          → Gateway prefix
+────────────────────────────────────────────────────────────
+Карта, список, дерево, lasso    → /entities/api/v1/
+Live, архив, segments           → /balancer/api/v1/
+Locks, batch, журнал ППУВ       → /rsm/api/v1/
+Federation status, extract      → /rsm/api/v1/federation/
+Admin регионы, sync, reserve    → /federation/
+Лицензия                        → /licenses/
+```
+
+Маппинг gateway: `/federation/{path}` → FGS `/api/v1/{path}`.
+
+### 17.4. ID и `origin`
+
+```typescript
+// В запросах UI — только локальные id
+resourceId: camera.id;           // projection camera на СРВИ
+streamId: stream.streamId;       // из availableStreams
+
+// Только отображение — не в API body
+origin.regionName;               // badge
+origin.regionId;                  // фильтр federationRegionId
+origin.sourceId;                 // НИКОГДА не отправлять
+```
+
+`installation.id` из `GET /federation/installations` = `federationRegionId` в фильтрах ENM = `origin.regionId`.
+
+### 17.5. Federation Admin (iter 3)
+
+Минимальный `POST /federation/installations`:
+
+```json
+{
+  "name": "Регион X",
+  "federationGatewayBaseUrl": "http://host:8132",
+  "clientId": "...",
+  "clientSecret": "...",
+  "clientScopes": "..."
+}
+```
+
+После create: `probe` → `catalog/sync` → прогресс sync (сейчас poll `catalog/sync/{operationId}`, далее WebSocket — §10.4).
+
+Probe: для статуса в списке смотри `serviceChecks` где `service === 'FederationGateway'`.
+
+Advanced URL (`entitiesBaseUrl`, …) — только collapsible override, не обязательные поля.
+
+### 17.6. Приоритет реализации
+
+Следуй [§16](#16-frontend-todo): **P0** (операторский контур) → **P1 Admin** + **P1 Map** → P2 reserve → P3.
+
+Не начинай с admin, если не сделаны badges и фильтр региона на карте (если нет явного запроса product).
+
+### 17.7. Что не выдумывать
+
+- Новые REST endpoints или поля в DTO — используй только контракты из **§4, §5, §10, §14** этого файла (кроме **WebSocket catalog sync** — следующая итерация, §10.4).
+- Отдельный «federation SDK» к региону — не нужен.
+- **Catalog sync progress:** сейчас REST poll; **WebSocket будет** — проектируй абстракцию подписки, не зашивай poll навечно в компонент без слоя transport.
+- Лимит lasso: из `limits.maxCamerasPerLasso` в ответе resolve (в примерах §9 — **300**), не хардкодь другие значения.
+- Если чего-то нет в этом документе — **спроси у пользователя**, не додумывай по «типичным» паттернам микросервисов.
+
+### 17.8. Чеклист после изменений
+
+1. `FEDERATION=off` → federation UI скрыт, запросы не уходят.
+2. Local camera — поведение без регрессий.
+3. Federated camera: те же SB/RSM endpoints, local ids.
+4. Admin: форма без 4 одинаковых URL; probe + sync работают.
+5. Lasso: preview блокирует submit при `exceedsLassoLimit`.
+6. Нет импортов/конфигов с regional base URL в frontend-коде.
+
+### 17.9. Ограничение контекста
+
+- **Не запрашивай и не ссылайся** на BACKEND.md, ITERATION_*.md, TESTING.md, HLD — их нет в scope фронтенд-команды.
+- Базовый ППУВ (locks, journal) без federation — вне этого файла; для federation используй §8 и RSM endpoints из §4.3.
+- При неясной бизнес-логике — уточни у разработчика; не расширяй API самостоятельно.
+
+---
+
+## Связанные документы (внутренние, backend)
+
+> Фронтенд-команде **не передаются**. Для сопровождения гайда backend-разработчиками.
+
+| Документ | Содержание |
+|----------|------------|
+| [BACKEND.md](../guides/BACKEND.md) | API, конфиг, code paths |
+| [ITERATION_2.md §6](../iterations/ITERATION_2.md) | ADR geo-search-resolve |
+| [TESTING.md](../testing/TESTING.md) | E2E I2-07, I2-08, regression |
+| [RSM FRONTEND](../../../resource-state-management/features/main/guides/FRONTEND.md) | Базовый ППУВ (locks, journal) |
+
+
+# Федерация ППУВ — обзор
+
+> **Статус:** рабочая документация · **Обновлено:** 2026-06-30  
+> **Аудитория:** product, архитекторы, tech lead, новые участники команды
+
+Краткий вход в тему федерации: зачем она нужна, как устроена платформа, где искать детали.
+
+---
+
+## 1. Зачем это нужно
+
+Федерация позволяет **платформе СРВИ** управлять камерами **региональных платформ** через привычный UI ППУВ, не объединяя сети в одну инсталляцию.
+
+Оператор СРВИ:
+
+- видит региональные камеры в своём каталоге, на карте и в дереве;
+- выполняет StreamBlock, PTZ, Archive lock, extract, reserve/FullCopy;
+- работает только со **своим** frontend и gateway — без прямых запросов в регион.
+
+Региональные пользователи продолжают работать в своём контуре. Действия СРВИ для них **не видны в аудите** региона.
+
+---
+
+## 2. Ключевые решения (коротко)
+
+| Тема | Решение |
+|------|---------|
+| Межплатформенный слой | Отдельный сервис **Federation Gateway (FGS)** |
+| Control-plane блокировок | **RSM** на каждой стороне; СРВИ вызывает FGS только для federated origin |
+| Каталог на СРВИ | **Проекции в ENM** (local `cameraId`, regional ids — internal) |
+| Media bytes | **Signed regional URL** через SB; FGS — negotiation, не proxy потока |
+| Лицензии | `PPUV` на СРВИ; `FEDERATION` на СРВИ и регионе (отдельные features) |
+| Одиночная установка | При `FEDERATION=off` платформа ведёт себя как до федерации |
+
+Подробнее: [PLAN.md](../architecture/PLAN.md), [ITERATION_1.md](../iterations/ITERATION_1.md) §0.1, [hld.md](../architecture/hld.md).
+
+---
+
+## 3. Топология
+
+```mermaid
+flowchart TB
+    subgraph SRVI["Платформа СРВИ"]
+        UI[Frontend]
+        GW[API Gateway]
+        ENM[ENM — каталог + проекции]
+        RSM[RSM — locks]
+        FGS[FGS — NEW]
+        SB[Streamer Balancer]
+        RFM[RFM]
+    end
+
+    subgraph REG["Регион × N"]
+        FGS_R[FGS региона]
+        RSM_R[RSM региона]
+        ENM_R[ENM региона]
+        SB_R[SB / MSS региона]
+    end
+
+    UI --> GW
+    GW --> ENM
+    GW --> RSM
+    GW --> SB
+    GW --> FGS
+    GW --> RFM
+
+    RSM -->|federated ops| FGS
+    SB -->|federated playback + archive segments| FGS
+    FGS <-->|S2S mTLS + client credentials| FGS_R
+    FGS_R --> RSM_R
+    FGS_R --> ENM_R
+    FGS_R --> SB_R
+```
+
+**Два контура трафика:**
+
+1. **User contour (north-south):** UI → Gateway → ENM / RSM / SB / FGS admin API. Bearer JWT пользователя.
+2. **S2S contour:** FGS СРВИ → FGS региона → regional RSM / ENM / SB / DCS. Client credentials + mTLS (outbound готов; inbound Kestrel — в backlog).
+
+---
+
+## 4. Типы камер в UI
+
+| `origin.originType` | Смысл |
+|---------------------|-------|
+| `Local` | Камера принадлежит СРВИ |
+| `FederatedProjection` | Проекция камеры региона в ENM СРВИ |
+| `FederatedCopy` | Локальная копия / reserve / FullCopy на MSS СРВИ |
+
+Поле `origin` (`FederationOriginDto`) приходит в ответах ENM для камер, стримов, дерева, тегов. UI всегда оперирует **локальными GUID** СРВИ.
+
+---
+
+## 5. Итерации (F0–F8)
+
+| Итерация | Содержание | Backend skeleton |
+|----------|------------|------------------|
+| **F0** | ADR/границы: RSM vs FGS, catalog, media, S2S | ✅ (§11 + BACKEND.md; `LAYOUT-01` отложен) |
+| **F1** | FGS, registry, health, gateway route, S2S client | ✅ |
+| **F2** | Catalog projection, sync, origin metadata в ENM | ✅ |
+| **F3** | UI origin/filters (в основном frontend) | частично |
+| **F4** | Federated playback / timeline summary / **archive segments** | ✅ |
+| **F5** | Federated locks, batch, **lasso** | ✅ (grouped status по региону — backlog) |
+| **F6** | Federated PTZ | ✅ |
+| **F7** | Archive lock, remote extract → RFM | ✅ |
+| **F8** | Reserve / FullCopy | ✅ (MSS register для FullCopy — follow-up) |
+
+Детальный чеклист итерации 1: [ITERATION_1.md](../iterations/ITERATION_1.md) §2. Следующие этапы: [ITERATION_2.md](../iterations/ITERATION_2.md) (карта), [ITERATION_3.md](../iterations/ITERATION_3.md) (peer FGS).
+
+---
+
+## 6. Карта документов
+
+| Документ | Для кого | Содержание |
+|----------|----------|------------|
+| [hld.md](hld.md) | Product, аналитики | Бизнес-требования, поведение для гражданских и ППУВ |
+| [PLAN.md](PLAN.md) | Вся команда | Оглавление итераций |
+| [ITERATION_1.md](../iterations/ITERATION_1.md) | Вся команда | Итерация 1 (MVP): ADR, чеклист F1–F8, открытые вопросы |
+| [ITERATION_2.md](../iterations/ITERATION_2.md) | Backend, frontend | Итерация 2: `geo-search-resolve`, lasso preview |
+| [ITERATION_3.md](../iterations/ITERATION_3.md) | Backend, архитекторы | Итерация 3: peer FGS (`PeerFgs`), internal routing |
+| **[OVERVIEW.md](OVERVIEW.md)** | Все | Этот файл — точка входа |
+| [BACKEND.md](../guides/BACKEND.md) | Backend | Сервисы, API, конфиг, паттерны разработки |
+| [FRONTEND.md](../guides/FRONTEND.md) | Frontend / BFF | Контракты UI, feature gates, UX |
+| [TESTING.md](../testing/TESTING.md) | QA, backend | План тестирования, E2E, regression |
+
+Связанные документы ППУВ (локальный контур, репозиторий RSM): [README](../../resource-state-management/features/main/README.md), [FRONTEND guide](../../resource-state-management/features/main/guides/FRONTEND.md).
+
+---
+
+## 7. Быстрый старт для разработчика
+
+### Локальный compose (fed-образы + profile federation)
+
+```bash
+cd backend-docker-compose/netvision
+docker compose -f internal/docker-compose-fed.yml --profile federation up -d
+```
+
+В `.env`: `FEDERATION_GATEWAY_URL=http://host.docker.internal:8132`. Включайте `Federation__Enabled=true` только после regression (см. [TESTING.md](../testing/TESTING.md) §0).
+
+### Swagger через gateway
+
+| Сервис | Gateway prefix | Пример |
+|--------|----------------|--------|
+| FGS | `/federation/` | `GET /federation/installations` |
+| RSM | `/rsm/` | `POST /rsm/api/v1/locks/acquire` |
+| ENM | `/entities/` | `POST /entities/api/v1/map/geo-search` |
+| SB | `/balancer/` | playback endpoints |
+| RFM | `/rfm/` | media items |
+
+FGS admin API требует license feature **`FEDERATION`** (gateway возвращает `403 FederationFeatureNotLicensed` без неё).
+
+### Репозитории
+
+| Репозиторий | Роль |
+|-------------|------|
+| `federation-gateway` | FGS |
+| `resource-state-management` | RSM + federation feature docs |
+| `entities-management` | ENM projections + geo resolve |
+| `streamer-balancer-v2` | Federated playback + archive segments |
+| `api-gateway-v2` | Routes + license gate |
+| `backend-docker-compose` | `docker-compose-fed.yml`, Portainer `federation-gateway/` |
+
+---
+
+## 8. Что ещё не в production scope
+
+- Inbound mTLS validation на Kestrel FGS
+- Idempotency/outbox для всех S2S commands
+- Feature `FEDERATION` в LCS (gateway gate уже ожидает ключ `FEDERATION` в license status)
+- UI: origin badges, federation admin, lasso UX, grouped batch results
+- E2E на двух физических инсталляциях
+- Layout substitution (отдельный mini-HLD)
+- Chaos / load tests
+
+Актуальный backlog — [ITERATION_1.md](../iterations/ITERATION_1.md), [ITERATION_2.md](../iterations/ITERATION_2.md), [ITERATION_3.md](../iterations/ITERATION_3.md) и секция «Открытые вопросы».
+
+
+# ППУВ: приоритет пользователей относительно разрешений
+
+> Обзор механизма `ppuv_priority` — как числовой приоритет вычисляется из permissions и используется при конфликтах за ресурсы.  
+> Сервисы: **RM** (Resource Management), **RSM** (Resource State Management), **FGS** (Federation Gateway).
+
+---
+
+## 1. Что такое `ppuv_priority`
+
+**`ppuv_priority`** — числовой claim в JWT, определяющий, кто выигрывает при конфликте за один ресурс (PTZ, StreamBlock, Archive).
+
+- **Не задаётся вручную в UI** — вычисляется автоматически в **RM** из набора разрешений роли пользователя.
+- **Используется в RSM** при операции `acquire` lock для решения о preemption (вытеснении).
+- **Отделён от permissions**: разрешения отвечают на вопрос «*можно ли* делать операцию», приоритет — «*кто победит*, если ресурс уже занят».
+
+---
+
+## 2. Роли сервисов
+
+| Сервис | Роль |
+|--------|------|
+| **RM** | Вычисляет `ppuv_priority` и добавляет claim в JWT при выдаче токена |
+| **RSM** | Читает claim из JWT и решает исход конфликта при `acquire` |
+| **FGS** | Проксирует federation-запросы; при inbound S2S RSM подставляет фиксированный приоритет **140** |
+
+---
+
+## 3. Шкала приоритетов
+
+| Кто | `ppuv_priority` | Откуда |
+|-----|-----------------|--------|
+| Гражданский оператор | **10** | Claim в JWT **отсутствует** → RSM подставляет значение по умолчанию |
+| Оператор ППУВ (минимум) | **110** | `ppuv:operate` |
+| + перехват PTZ | **120** | `ppuv:preempt` |
+| + спецрежим (StreamBlock) | **130** | `ppuv:stream-block` |
+| + изъятие архива | **140** | `ppuv:archive:seize` |
+| Inbound federation (СРВИ через FGS) | **140** | Фиксировано в RSM для scope `federation:inbound` |
+
+### Формула (RM, `PpuvPriorityCalculator`)
+
+```
+ppuv_priority = 100 + 10 × max(tier «силовых» ppuv-разрешений)
+```
+
+- **База оператора ППУВ:** `100`
+- **Множитель tier:** `10`
+- Tier берётся из `PermissionsOrder.Mapping` по **максимальному** tier среди «силовых» разрешений
+
+### Tier разрешений ППУВ
+
+| Permission | Tier | Итоговый приоритет (если это max) |
+|------------|------|-----------------------------------|
+| `ppuv:operate` | 1 | 110 |
+| `ppuv:preempt` | 2 | 120 |
+| `ppuv:stream-block` | 3 | 130 |
+| `ppuv:archive:seize` | 4 | 140 |
+| `ppuv:covert` | 5 | **не влияет** на приоритет |
+| `ppuv:admin` | 6 | **не влияет** на приоритет |
+
+### Разрешения, которые не повышают приоритет
+
+- **`ppuv:covert`** — скрытый режим аудита; даёт bypass live при StreamBlock, но не увеличивает `ppuv_priority`
+- **`ppuv:admin`** — администрирование блокировок (force-release); на приоритет не влияет
+
+Пример: оператор с `ppuv:operate` + `ppuv:covert` → приоритет **110**, а не выше.
+
+---
+
+## 4. Разрешения vs приоритет
+
+Это **разные механизмы**:
+
+### Permissions — «можно ли выполнить операцию»
+
+Проверяется в RSM через `PpuvLockPermissions.CanManageLock`:
+
+| `lockType` | Требуемое permission |
+|------------|----------------------|
+| `Ptz` | `ppuv:preempt` (и базовый `ppuv:operate`) |
+| `StreamBlock` | `ppuv:stream-block` |
+| `Archive` | `ppuv:archive:seize` |
+
+Админ (`ppuv:admin`) может управлять всеми типами блокировок.  
+Inbound federation (`federation:inbound`) может управлять всеми типами без локальных `ppuv:*`.
+
+### Priority — «кто победит при конфликте»
+
+Если ресурс уже занят другим пользователем, RSM сравнивает `actor.Priority` с `active.Priority`.
+
+| Ситуация | Результат |
+|----------|-----------|
+| ППУВ (110+) vs гражданский (10) | **Preemption** — новый владелец, у старого статус `PREEMPTED` |
+| Гражданский vs занятый ресурс | **Rejected** (`LOWER_PRIORITY` или `RESOURCE_BUSY`) |
+| **Равный** приоритет | **Rejected** (`RESOURCE_BUSY`) — ресурс не отдаётся |
+
+---
+
+## 5. Как RSM использует приоритет
+
+При `acquire`, если ресурс занят **другим** пользователем:
+
+1. Если `actor.Priority > active.Priority` → **preemption** (вытеснение)
+2. Если `actor.Priority < active.Priority` → **Rejected** с кодом `LOWER_PRIORITY`
+3. Если приоритеты **равны** → **Rejected** с кодом `RESOURCE_BUSY`
+
+Приоритет извлекается из JWT в `LockActorContextFactory`:
+
+- Claim: `ppuv_priority` (int)
+- Если claim отсутствует → используется **10** (гражданский)
+
+Сохраняется в lease (`ResourceLock.Priority`) и публикуется в Kafka для data-plane.
+
+---
+
+## 6. Как RM выдаёт claim
+
+При формировании JWT (`TokenService.AddPpuvClaims`):
+
+1. Если в permissions **нет** ни одного `ppuv:*` → claim `ppuv_priority` **не добавляется**
+2. Если есть хотя бы одно `ppuv:*` → claim = результат `PpuvPriorityCalculator.Calculate(permissions)`
+3. При наличии `ppuv:covert` дополнительно добавляется claim `ppuv_covert=true`
+
+**Лицензирование:** без активной лицензии PPUV в LCS RM **убирает** все `ppuv:*` из JWT — claim `ppuv_priority` тоже не выдаётся. Login при этом не падает (degrade).
+
+---
+
+## 7. FGS и federation
+
+Для inbound S2S-запросов (scope `federation:inbound` + заголовок `X-Federation-Source-Installation-Id`) RSM **перезаписывает** приоритет:
+
+- `Priority = FederationLockPermissions.InboundOperatorPriority` → **140**
+- `IsCovert = true`
+
+Это максимальный tier — inbound federation вытесняет гражданских и большинство локальных операторов региона.
+
+Права ППУВ для оператора СРВИ остаются **локальными** правами СРВИ (`ppuv:*`, `ppuv_priority`, `ppuv_covert`); FGS проксирует запросы, а правило приоритета применяется на стороне RSM.
+
+---
+
+## 8. Важные нюансы
+
+1. **Priority ≠ bypass на data-plane.**  
+   `ppuv_priority >= 100` даёт bypass StreamBlock для live (SB/MSS), но **не заменяет** permissions для mutations в RSM и **не даёт** bypass архива без `ppuv:archive:seize`.
+
+2. **Сисадмин без роли ППУВ** — приоритет **10**, как у гражданского; не получает оперативного приоритета над ППУВ.
+
+3. **PTZ на data-plane** — проверяется по **владельцу lease** (и `fencingToken`), а не по permission/priority напрямую.
+
+4. **Типы блокировок независимы** — на одну камеру могут одновременно существовать отдельные lease для `Ptz`, `StreamBlock` и `Archive`; preemption работает **внутри одного `lockType`**.
+
+5. **Bypass live (StreamBlock):** `ppuv:operate`, `ppuv:stream-block`, `ppuv:covert`, `ppuv:admin`, или `ppuv_priority >= 100`.
+
+6. **Bypass archive (таймлайн/HLS):** `ppuv:operate`, `ppuv:archive:seize`, `ppuv:admin` — **не** `ppuv:covert` и **не** только высокий priority.
+
+---
+
+## 9. Примеры профилей операторов
+
+| Профиль | Permissions | `ppuv_priority` |
+|---------|-------------|-----------------|
+| Гражданский | `camera:read`, `camera:control` | 10 (claim нет) |
+| Базовый оператор ППУВ | `ppuv:operate` | 110 |
+| Оператор с перехватом | `ppuv:operate`, `ppuv:preempt` | 120 |
+| Оператор спецрежима | + `ppuv:stream-block` | 130 |
+| Полный оператор | + `ppuv:archive:seize` | 140 |
+| Covert-оператор | `ppuv:operate`, `ppuv:covert` | 110 (covert не повышает) |
+| Админ ППУВ | `ppuv:admin` | 100 (admin-only; для mutations достаточно admin) |
+
+---
+
+## 10. Где смотреть в коде
+
+| Что | Где |
+|-----|-----|
+| Вычисление приоритета | `resource-management-v2/.../Constants/PpuvPriorityCalculator.cs` |
+| Константы (10, 100, множитель) | `resource-management-v2/.../Constants/PpuvPriority.cs` |
+| Tier permissions | `resource-management-v2/.../Constants/PermissionsOrder.cs` |
+| Выдача claim в JWT | `resource-management-v2/.../Services/TokenService.cs` |
+| Preemption в acquire | `resource-state-management/.../Services/LockService.cs` |
+| Извлечение из JWT | `resource-state-management/.../Core/LockActorContextFactory.cs` |
+| Проверка permissions на lock | `resource-state-management/.../Constants/PpuvLockPermissions.cs` |
+| Federation inbound priority | `resource-state-management/.../Constants/FederationLockPermissions.cs` |
+| Unit-тесты калькулятора | `resource-management-v2/test/.../PpuvPriorityCalculatorTests.cs` |
+
+---
+
+## 11. Связанная документация
+
+- [PPUV_OVERVIEW.md](../PPUV_OVERVIEW.md) — общий обзор подсистемы ППУВ
+- [FRONTEND.md](FRONTEND.md) — claims в JWT, коды ответов RSM
+- [LOCK_MODEL.md](../architecture/LOCK_MODEL.md) — типы блокировок
+- [TESTING.md](TESTING.md) — сценарии TC-03/TC-04 (preemption)
