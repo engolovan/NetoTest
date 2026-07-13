@@ -50,6 +50,7 @@
     }
 
     .camera-card {
+      position: relative;
       overflow: hidden;
       border: 4px solid #343b44;
       border-radius: var(--radius);
@@ -226,7 +227,6 @@
     }
 
     .card-body {
-      position: relative;
       padding: 20px 30px 28px;
       background: var(--panel);
     }
@@ -297,7 +297,7 @@
       overflow: hidden;
       margin: 0;
       color: var(--text);
-      font-size: 22px;
+      font-size: 18px;
       font-weight: 800;
       letter-spacing: .01em;
       line-height: 1.12;
@@ -306,9 +306,9 @@
     }
 
     .subtitle {
-      margin: 12px 0 0 50px;
+      margin: 8px 0 0 50px;
       color: var(--muted);
-      font-size: 19px;
+      font-size: 15px;
       font-weight: 700;
     }
 
@@ -376,12 +376,16 @@
 
     .state-form {
       display: none;
-      margin-top: 18px;
+      position: absolute;
+      top: 90px;
+      left: 28px;
+      right: 28px;
+      z-index: 8;
       padding: 16px;
       border: 1px solid var(--line);
       border-radius: 16px;
       background: #20262c;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .03);
+      box-shadow: 0 22px 56px rgba(0, 0, 0, .56), inset 0 1px 0 rgba(255, 255, 255, .03);
     }
 
     .state-form.is-open {
@@ -403,7 +407,7 @@
       line-height: 1.2;
     }
 
-    .release-button {
+    .form-close-button {
       width: 30px;
       height: 30px;
       display: grid;
@@ -416,12 +420,11 @@
       cursor: pointer;
     }
 
-    .release-button:hover {
-      background: rgba(255, 107, 107, .18);
-      border-color: rgba(255, 107, 107, .45);
+    .form-close-button:hover {
+      background: rgba(255, 255, 255, .08);
     }
 
-    .release-button svg {
+    .form-close-button svg {
       width: 18px;
       height: 18px;
       fill: currentColor;
@@ -459,8 +462,15 @@
       font-weight: 700;
     }
 
+    .time-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
     .form-actions {
       display: flex;
+      flex-wrap: wrap;
       gap: 10px;
       margin-top: 14px;
     }
@@ -478,16 +488,20 @@
       cursor: pointer;
     }
 
+    .form-actions button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
     .form-actions .secondary {
       background: var(--panel-3);
       color: var(--text);
     }
 
-    .form-note {
-      margin: 10px 0 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.35;
+    .form-actions .danger {
+      background: rgba(255, 107, 107, .16);
+      color: #ffdede;
+      border: 1px solid rgba(255, 107, 107, .42);
     }
 
     .badges {
@@ -514,16 +528,21 @@
     }
 
     .row-action {
-      width: 34px;
-      height: 34px;
+      width: 32px;
+      height: 32px;
       display: grid;
       place-items: center;
       margin: 2px 0 30px;
-      border: 3px solid #fff;
+      border: 2px solid #fff;
       border-radius: 50%;
       background: transparent;
       color: #fff;
       cursor: pointer;
+    }
+
+    .row-action svg {
+      width: 19px;
+      height: 19px;
     }
 
     .details {
@@ -539,14 +558,14 @@
       gap: 18px;
       align-items: start;
       color: var(--text);
-      font-size: 20px;
+      font-size: 16px;
       font-weight: 800;
       line-height: 1.18;
     }
 
     .detail-label {
       color: var(--muted);
-      font-size: 20px;
+      font-size: 16px;
       font-weight: 800;
     }
 
@@ -794,6 +813,11 @@
         <section class="state-form" data-form="archive" aria-label="Форма изменения глубины архива">
           <header>
             <h2>Изменить глубину архива</h2>
+            <button class="form-close-button" type="button" data-close-form aria-label="Закрыть форму">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+              </svg>
+            </button>
           </header>
           <div class="form-grid">
             <div class="form-field">
@@ -815,6 +839,11 @@
         <section class="state-form" data-form="settings" aria-label="Форма настроек камеры">
           <header>
             <h2>Настройки камеры</h2>
+            <button class="form-close-button" type="button" data-close-form aria-label="Закрыть форму">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+              </svg>
+            </button>
           </header>
           <div class="form-grid">
             <div class="form-field">
@@ -835,69 +864,73 @@
         <section class="state-form" data-form="camera-lock" aria-label="Форма блокировки камеры">
           <header>
             <h2>Блокировка камеры</h2>
-            <button class="release-button" type="button" data-release-state="camera-lock" aria-label="Снять блокировку камеры">
+            <button class="form-close-button" type="button" data-close-form aria-label="Закрыть форму">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
               </svg>
             </button>
           </header>
           <div class="form-grid">
-            <div class="form-field">
-              <label for="camera-lock-state">Состояние</label>
-              <input id="camera-lock-state" value="Камера заблокирована" readonly>
-            </div>
-            <div class="form-field">
-              <label for="camera-lock-time">Время блокировки</label>
-              <select id="camera-lock-time">
-                <option>15 минут</option>
-                <option selected>45 минут</option>
-                <option>2 часа</option>
-                <option>До конца смены</option>
-              </select>
+            <div class="time-fields">
+              <div class="form-field">
+                <label for="camera-lock-amount">Число</label>
+                <input id="camera-lock-amount" type="number" min="1" value="45">
+              </div>
+              <div class="form-field">
+                <label for="camera-lock-unit">Единица</label>
+                <select id="camera-lock-unit">
+                  <option selected>минуты</option>
+                  <option>секунды</option>
+                  <option>часы</option>
+                  <option>дни</option>
+                </select>
+              </div>
             </div>
           </div>
           <div class="form-actions">
-            <button type="button" data-activate-state="camera-lock" data-state-title="До разблокировки камеры: 2 часа">Продлить</button>
+            <button type="button" data-activate-state="camera-lock" data-title-prefix="До разблокировки камеры" data-amount-field="camera-lock-amount" data-unit-field="camera-lock-unit">Сохранить</button>
             <button class="secondary" type="button" data-close-form>Отмена</button>
+            <button class="danger" type="button" data-release-state="camera-lock">Снять блокировку</button>
           </div>
-          <p class="form-note">Крестик снимает блокировку и скрывает замочек в верхней части карточки.</p>
         </section>
 
         <section class="state-form" data-form="position-lock" aria-label="Форма блокировки положения камеры">
           <header>
             <h2>Блокировка положения камеры</h2>
-            <button class="release-button" type="button" data-release-state="position-lock" aria-label="Снять блокировку положения камеры">
+            <button class="form-close-button" type="button" data-close-form aria-label="Закрыть форму">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
               </svg>
             </button>
           </header>
           <div class="form-grid">
-            <div class="form-field">
-              <label for="position-lock-state">Состояние</label>
-              <input id="position-lock-state" value="Положение зафиксировано" readonly>
-            </div>
-            <div class="form-field">
-              <label for="position-lock-time">Время блокировки</label>
-              <select id="position-lock-time">
-                <option>15 минут</option>
-                <option selected>1 час 15 минут</option>
-                <option>3 часа</option>
-                <option>До конца смены</option>
-              </select>
+            <div class="time-fields">
+              <div class="form-field">
+                <label for="position-lock-amount">Число</label>
+                <input id="position-lock-amount" type="number" min="1" value="75">
+              </div>
+              <div class="form-field">
+                <label for="position-lock-unit">Единица</label>
+                <select id="position-lock-unit">
+                  <option selected>минуты</option>
+                  <option>секунды</option>
+                  <option>часы</option>
+                  <option>дни</option>
+                </select>
+              </div>
             </div>
           </div>
           <div class="form-actions">
-            <button type="button" data-activate-state="position-lock" data-state-title="До разблокировки положения: 3 часа">Продлить</button>
+            <button type="button" data-activate-state="position-lock" data-title-prefix="До разблокировки положения" data-amount-field="position-lock-amount" data-unit-field="position-lock-unit">Сохранить</button>
             <button class="secondary" type="button" data-close-form>Отмена</button>
+            <button class="danger" type="button" data-release-state="position-lock">Снять блокировку</button>
           </div>
-          <p class="form-note">Крестик снимает блокировку и скрывает булавку в верхней части карточки.</p>
         </section>
 
         <section class="state-form" data-form="reservation" aria-label="Форма резервирования камеры">
           <header>
             <h2>Резервирование камеры</h2>
-            <button class="release-button" type="button" data-release-state="reservation" aria-label="Снять резервирование камеры">
+            <button class="form-close-button" type="button" data-close-form aria-label="Закрыть форму">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
               </svg>
@@ -914,10 +947,10 @@
             </div>
           </div>
           <div class="form-actions">
-            <button type="button" data-activate-state="reservation" data-state-title="Резерв активен, глубина архива: 7 суток">Сохранить резерв</button>
+            <button type="button" data-activate-state="reservation" data-depth-field="reserve-depth">Сохранить</button>
             <button class="secondary" type="button" data-close-form>Отмена</button>
+            <button class="danger" type="button" data-release-state="reservation">Снять резерв</button>
           </div>
-          <p class="form-note">Крестик снимает резервирование и скрывает R в верхней части карточки.</p>
         </section>
 
         <div class="badges" aria-label="Краткие характеристики">
@@ -964,6 +997,7 @@
       forms.forEach((form) => {
         form.classList.toggle("is-open", form.dataset.form === name);
       });
+      syncReleaseButtons();
     }
 
     function closeForms() {
@@ -987,6 +1021,7 @@
         const icon = document.querySelector(`[data-state-icon="${state}"]`);
 
         icon?.classList.add("is-hidden");
+        syncReleaseButtons();
         closeForms();
       });
     });
@@ -997,10 +1032,34 @@
         const icon = document.querySelector(`[data-state-icon="${state}"]`);
 
         icon?.classList.remove("is-hidden");
-        icon?.setAttribute("title", button.dataset.stateTitle);
+        icon?.setAttribute("title", getStateTitle(button));
+        syncReleaseButtons();
         closeForms();
       });
     });
+
+    function getStateTitle(button) {
+      if (button.dataset.depthField) {
+        const depth = document.getElementById(button.dataset.depthField)?.value;
+        return `Резерв активен, глубина архива: ${depth}`;
+      }
+
+      const amount = document.getElementById(button.dataset.amountField)?.value;
+      const unit = document.getElementById(button.dataset.unitField)?.value;
+
+      return `${button.dataset.titlePrefix}: ${amount} ${unit}`;
+    }
+
+    function syncReleaseButtons() {
+      releaseButtons.forEach((button) => {
+        const state = button.dataset.releaseState;
+        const icon = document.querySelector(`[data-state-icon="${state}"]`);
+
+        button.disabled = !icon || icon.classList.contains("is-hidden");
+      });
+    }
+
+    syncReleaseButtons();
   </script>
 </body>
 </html>
