@@ -170,6 +170,10 @@
       background: var(--warning);
     }
 
+    .state-icon.is-hidden {
+      display: none;
+    }
+
     .quick-actions {
       left: 32px;
       right: 32px;
@@ -345,36 +349,145 @@
       box-shadow: 0 18px 42px rgba(0, 0, 0, .45);
     }
 
-    .menu-title {
-      padding: 8px 10px 10px;
+    .menu button {
+      width: 100%;
+      padding: 11px 12px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .menu button:hover {
+      background: rgba(255, 255, 255, .08);
+    }
+
+    .menu hr {
+      height: 1px;
+      margin: 8px 4px;
+      border: 0;
+      background: var(--line);
+    }
+
+    .state-form {
+      display: none;
+      margin-top: 18px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #20262c;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .03);
+    }
+
+    .state-form.is-open {
+      display: block;
+    }
+
+    .state-form header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .state-form h2 {
+      margin: 0;
+      color: var(--text);
+      font-size: 17px;
+      line-height: 1.2;
+    }
+
+    .release-button {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 9px;
+      background: var(--panel-2);
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .release-button:hover {
+      background: rgba(255, 107, 107, .18);
+      border-color: rgba(255, 107, 107, .45);
+    }
+
+    .release-button svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .form-field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .form-field label {
       color: var(--muted);
       font-size: 12px;
       font-weight: 800;
-      letter-spacing: .08em;
+      letter-spacing: .04em;
       text-transform: uppercase;
     }
 
-    .menu-row {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      padding: 10px;
-      border-radius: 9px;
+    .form-field input,
+    .form-field select {
+      width: 100%;
+      min-height: 38px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #171c21;
       color: var(--text);
+      font: inherit;
       font-size: 14px;
       font-weight: 700;
     }
 
-    .menu-row + .menu-row {
-      margin-top: 3px;
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
     }
 
-    .menu-label {
+    .form-actions button {
+      min-height: 36px;
+      padding: 8px 12px;
+      border: 0;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #071018;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .form-actions .secondary {
+      background: var(--panel-3);
+      color: var(--text);
+    }
+
+    .form-note {
+      margin: 10px 0 0;
       color: var(--muted);
-    }
-
-    .menu-value {
-      text-align: right;
+      font-size: 13px;
+      line-height: 1.35;
     }
 
     .badges {
@@ -602,17 +715,17 @@
 
         <div class="status-stack" aria-label="Статусы камеры">
           <span class="status-pill" title="Онлайн"><span class="status-dot"></span></span>
-          <span class="state-icon" title="Камера заблокирована">
+          <span class="state-icon" data-state-icon="camera-lock" title="До разблокировки камеры: 42 минуты">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M7 10V8a5 5 0 0 1 10 0v2h1.5A1.5 1.5 0 0 1 20 11.5v8A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5v-8A1.5 1.5 0 0 1 5.5 10zm2 0h6V8a3 3 0 0 0-6 0z"/>
             </svg>
           </span>
-          <span class="state-icon" title="Положение камеры зафиксировано">
+          <span class="state-icon" data-state-icon="position-lock" title="До разблокировки положения: 1 час 15 минут">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="m13.8 3 7.2 7.2-1.4 1.4-1.2-1.2-4.5 4.5.6 3.6-1.4 1.4-4-4L4.8 20.2 3.4 18.8l4.3-4.3-4-4 1.4-1.4 3.6.6 4.5-4.5L12 4.4z"/>
             </svg>
           </span>
-          <span class="state-icon reserve" title="Камера зарезервирована">R</span>
+          <span class="state-icon reserve" data-state-icon="reservation" title="Резерв активен, глубина архива: 72 часа">R</span>
         </div>
 
         <button class="close-button" type="button" aria-label="Закрыть карточку">
@@ -668,22 +781,144 @@
               </svg>
             </summary>
             <div class="menu" role="menu">
-              <div class="menu-title">Блокировки и резерв</div>
-              <div class="menu-row">
-                <span class="menu-label">Камера</span>
-                <span class="menu-value">заблокирована</span>
-              </div>
-              <div class="menu-row">
-                <span class="menu-label">Положение</span>
-                <span class="menu-value">зафиксировано</span>
-              </div>
-              <div class="menu-row">
-                <span class="menu-label">Резерв</span>
-                <span class="menu-value">активен</span>
-              </div>
+              <button type="button" data-open-form="archive">Изменить глубину архива</button>
+              <button type="button" data-open-form="settings">Настройки камеры</button>
+              <hr>
+              <button type="button" data-open-form="camera-lock">Блокировка камеры</button>
+              <button type="button" data-open-form="position-lock">Блокировка положения камеры</button>
+              <button type="button" data-open-form="reservation">Резервирование камеры</button>
             </div>
           </details>
         </header>
+
+        <section class="state-form" data-form="archive" aria-label="Форма изменения глубины архива">
+          <header>
+            <h2>Изменить глубину архива</h2>
+          </header>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="archive-depth">Глубина архива</label>
+              <select id="archive-depth">
+                <option>24 часа</option>
+                <option selected>72 часа</option>
+                <option>7 суток</option>
+                <option>30 суток</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button">Сохранить</button>
+            <button class="secondary" type="button" data-close-form>Отмена</button>
+          </div>
+        </section>
+
+        <section class="state-form" data-form="settings" aria-label="Форма настроек камеры">
+          <header>
+            <h2>Настройки камеры</h2>
+          </header>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="camera-stream">Поток</label>
+              <select id="camera-stream">
+                <option selected>Основной поток</option>
+                <option>Дополнительный поток</option>
+                <option>Низкое качество</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button">Сохранить</button>
+            <button class="secondary" type="button" data-close-form>Отмена</button>
+          </div>
+        </section>
+
+        <section class="state-form" data-form="camera-lock" aria-label="Форма блокировки камеры">
+          <header>
+            <h2>Блокировка камеры</h2>
+            <button class="release-button" type="button" data-release-state="camera-lock" aria-label="Снять блокировку камеры">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+              </svg>
+            </button>
+          </header>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="camera-lock-state">Состояние</label>
+              <input id="camera-lock-state" value="Камера заблокирована" readonly>
+            </div>
+            <div class="form-field">
+              <label for="camera-lock-time">Время блокировки</label>
+              <select id="camera-lock-time">
+                <option>15 минут</option>
+                <option selected>45 минут</option>
+                <option>2 часа</option>
+                <option>До конца смены</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" data-activate-state="camera-lock" data-state-title="До разблокировки камеры: 2 часа">Продлить</button>
+            <button class="secondary" type="button" data-close-form>Отмена</button>
+          </div>
+          <p class="form-note">Крестик снимает блокировку и скрывает замочек в верхней части карточки.</p>
+        </section>
+
+        <section class="state-form" data-form="position-lock" aria-label="Форма блокировки положения камеры">
+          <header>
+            <h2>Блокировка положения камеры</h2>
+            <button class="release-button" type="button" data-release-state="position-lock" aria-label="Снять блокировку положения камеры">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+              </svg>
+            </button>
+          </header>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="position-lock-state">Состояние</label>
+              <input id="position-lock-state" value="Положение зафиксировано" readonly>
+            </div>
+            <div class="form-field">
+              <label for="position-lock-time">Время блокировки</label>
+              <select id="position-lock-time">
+                <option>15 минут</option>
+                <option selected>1 час 15 минут</option>
+                <option>3 часа</option>
+                <option>До конца смены</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" data-activate-state="position-lock" data-state-title="До разблокировки положения: 3 часа">Продлить</button>
+            <button class="secondary" type="button" data-close-form>Отмена</button>
+          </div>
+          <p class="form-note">Крестик снимает блокировку и скрывает булавку в верхней части карточки.</p>
+        </section>
+
+        <section class="state-form" data-form="reservation" aria-label="Форма резервирования камеры">
+          <header>
+            <h2>Резервирование камеры</h2>
+            <button class="release-button" type="button" data-release-state="reservation" aria-label="Снять резервирование камеры">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+              </svg>
+            </button>
+          </header>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="reserve-depth">Глубина архива</label>
+              <select id="reserve-depth">
+                <option>24 часа</option>
+                <option selected>72 часа</option>
+                <option>7 суток</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" data-activate-state="reservation" data-state-title="Резерв активен, глубина архива: 7 суток">Сохранить резерв</button>
+            <button class="secondary" type="button" data-close-form>Отмена</button>
+          </div>
+          <p class="form-note">Крестик снимает резервирование и скрывает R в верхней части карточки.</p>
+        </section>
 
         <div class="badges" aria-label="Краткие характеристики">
           <span class="meta-badge">Внешняя</span>
@@ -718,5 +953,54 @@
     </article>
 
   </main>
+  <script>
+    const forms = document.querySelectorAll("[data-form]");
+    const menuButtons = document.querySelectorAll("[data-open-form]");
+    const closeButtons = document.querySelectorAll("[data-close-form]");
+    const releaseButtons = document.querySelectorAll("[data-release-state]");
+    const activateButtons = document.querySelectorAll("[data-activate-state]");
+
+    function openForm(name) {
+      forms.forEach((form) => {
+        form.classList.toggle("is-open", form.dataset.form === name);
+      });
+    }
+
+    function closeForms() {
+      forms.forEach((form) => form.classList.remove("is-open"));
+    }
+
+    menuButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        openForm(button.dataset.openForm);
+        button.closest("details")?.removeAttribute("open");
+      });
+    });
+
+    closeButtons.forEach((button) => {
+      button.addEventListener("click", closeForms);
+    });
+
+    releaseButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const state = button.dataset.releaseState;
+        const icon = document.querySelector(`[data-state-icon="${state}"]`);
+
+        icon?.classList.add("is-hidden");
+        closeForms();
+      });
+    });
+
+    activateButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const state = button.dataset.activateState;
+        const icon = document.querySelector(`[data-state-icon="${state}"]`);
+
+        icon?.classList.remove("is-hidden");
+        icon?.setAttribute("title", button.dataset.stateTitle);
+        closeForms();
+      });
+    });
+  </script>
 </body>
 </html>
