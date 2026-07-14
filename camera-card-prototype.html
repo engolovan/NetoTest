@@ -1,0 +1,1229 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Карточка камеры</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page: #101417;
+      --panel: #252b31;
+      --panel-2: #2b3239;
+      --panel-3: #343c45;
+      --line: #3d4650;
+      --text: #f2f5f7;
+      --muted: #a9b0ba;
+      --soft: #7f8a96;
+      --accent: #6fb6ff;
+      --online: #61d394;
+      --warning: #f1c85b;
+      --danger: #ff6b6b;
+      --shadow: rgba(0, 0, 0, .45);
+      --radius: 15px;
+      font-family: Inter, Roboto, "Segoe UI", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 16% 22%, rgba(58, 125, 70, .2), transparent 30%),
+        radial-gradient(circle at 84% 12%, rgba(80, 122, 180, .16), transparent 26%),
+        linear-gradient(135deg, #101417, #15191e 52%, #0b0d10);
+      color: var(--text);
+    }
+
+    .stage {
+      width: min(1100px, 100%);
+      padding: 32px;
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) 480px;
+      gap: 28px;
+      align-items: start;
+    }
+
+    .camera-card {
+      position: relative;
+      overflow: hidden;
+      border: 4px solid #343b44;
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: 0 24px 70px var(--shadow);
+    }
+
+    .video {
+      position: relative;
+      height: 318px;
+      background:
+        linear-gradient(rgba(0, 0, 0, .86), rgba(0, 0, 0, .92)),
+        radial-gradient(circle at 60% 44%, rgba(255, 255, 255, .08), transparent 20%),
+        #020202;
+      border-bottom: 1px solid #171a1e;
+    }
+
+    .drag-handle,
+    .close-button,
+    .status-stack,
+    .quick-actions {
+      position: absolute;
+      z-index: 2;
+    }
+
+    .drag-handle {
+      top: 0;
+      left: 0;
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border-bottom-right-radius: 12px;
+      background: rgba(37, 43, 49, .92);
+      cursor: grab;
+    }
+
+    .drag-dots {
+      width: 18px;
+      height: 24px;
+      background-image: radial-gradient(circle, #ffffff 2px, transparent 2.5px);
+      background-size: 8px 8px;
+      opacity: .9;
+    }
+
+    .close-button {
+      top: 0;
+      right: 0;
+      width: 46px;
+      height: 46px;
+      border: 0;
+      border-bottom-left-radius: 12px;
+      background: rgba(37, 43, 49, .92);
+      color: white;
+      font-size: 34px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .status-stack {
+      top: 14px;
+      right: 58px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: calc(100% - 120px);
+      opacity: .98;
+    }
+
+    .status-pill,
+    .state-icon,
+    .meta-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 28px;
+      padding: 5px 9px;
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 999px;
+      background: rgba(37, 43, 49, .88);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+      backdrop-filter: blur(8px);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--online);
+      box-shadow: 0 0 0 4px rgba(97, 211, 148, .14);
+    }
+
+    .status-dot.offline {
+      background: var(--danger);
+      box-shadow: 0 0 0 4px rgba(255, 107, 107, .14);
+    }
+
+    .status-dot.deleted {
+      background: var(--soft);
+      box-shadow: 0 0 0 4px rgba(127, 138, 150, .16);
+    }
+
+    .state-icon {
+      width: 28px;
+      padding: 0;
+      color: #fff;
+    }
+
+    button.state-icon {
+      cursor: pointer;
+    }
+
+    button.state-icon:hover,
+    button.state-icon:focus-visible {
+      background: rgba(255, 255, 255, .14);
+      outline: none;
+    }
+
+    .state-icon.reserve {
+      width: 28px;
+      padding: 0;
+      color: #14171a;
+      background: var(--warning);
+    }
+
+    .state-icon.is-hidden {
+      display: none;
+    }
+
+    .quick-actions {
+      left: 32px;
+      right: 32px;
+      bottom: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      opacity: .9;
+      transition: opacity .16s ease, transform .16s ease;
+    }
+
+    .camera-card:not(:hover) .quick-actions {
+      opacity: .72;
+    }
+
+    .action-button {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: #fff;
+      cursor: pointer;
+      transition: background .16s ease, transform .16s ease;
+    }
+
+    .action-button:hover,
+    .action-button:focus-visible {
+      background: rgba(255, 255, 255, .11);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .action-button svg,
+    .close-button svg,
+    .row-action svg,
+    .more-button svg,
+    .state-icon svg {
+      display: block;
+      width: 30px;
+      height: 30px;
+      fill: currentColor;
+    }
+
+    .state-icon svg {
+      width: 17px;
+      height: 17px;
+    }
+
+    .card-body {
+      padding: 20px 30px 28px;
+      background: var(--panel);
+    }
+
+    .camera-heading {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .title-row {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .camera-kind {
+      position: relative;
+      width: 26px;
+      height: 22px;
+      flex: 0 0 auto;
+    }
+
+    .camera-kind::before {
+      content: "";
+      position: absolute;
+      left: 2px;
+      bottom: 0;
+      width: 22px;
+      height: 12px;
+      border-radius: 9px 9px 3px 3px;
+      background: #fff;
+    }
+
+    .camera-kind::after {
+      content: "";
+      position: absolute;
+      left: 8px;
+      top: 0;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    .kind-alert {
+      position: absolute;
+      right: -4px;
+      bottom: 2px;
+      color: #fff;
+      font-size: 20px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .chevron {
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 7px solid var(--soft);
+      flex: 0 0 auto;
+    }
+
+    h1 {
+      overflow: hidden;
+      margin: 0;
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: .01em;
+      line-height: 1.12;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .subtitle {
+      margin: 8px 0 0 50px;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .more {
+      position: relative;
+    }
+
+    .more summary {
+      list-style: none;
+    }
+
+    .more summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .more-button {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 12px;
+      background: var(--panel-2);
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .menu {
+      position: absolute;
+      top: 46px;
+      right: 0;
+      z-index: 6;
+      width: 250px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #1f252b;
+      box-shadow: 0 18px 42px rgba(0, 0, 0, .45);
+    }
+
+    .menu button {
+      width: 100%;
+      padding: 11px 12px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .menu button:hover {
+      background: rgba(255, 255, 255, .08);
+    }
+
+    .menu hr {
+      height: 1px;
+      margin: 8px 4px;
+      border: 0;
+      background: var(--line);
+    }
+
+    .state-form {
+      display: none;
+      position: absolute;
+      top: 90px;
+      left: 28px;
+      right: 28px;
+      z-index: 8;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #20262c;
+      box-shadow: 0 22px 56px rgba(0, 0, 0, .56), inset 0 1px 0 rgba(255, 255, 255, .03);
+    }
+
+    .state-form.is-open {
+      display: block;
+    }
+
+    .state-form header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .state-form h2 {
+      margin: 0;
+      color: var(--text);
+      font-size: 17px;
+      line-height: 1.2;
+    }
+
+    .form-close-button {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 9px;
+      background: var(--panel-2);
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .form-close-button:hover {
+      background: rgba(255, 255, 255, .08);
+    }
+
+    .form-close-button svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .form-field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .form-field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .form-field input,
+    .form-field select {
+      width: 100%;
+      min-height: 38px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #171c21;
+      color: var(--text);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .time-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .form-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .form-actions button {
+      min-height: 36px;
+      padding: 8px 12px;
+      border: 0;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #071018;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .form-actions button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    .form-actions .secondary {
+      background: var(--panel-3);
+      color: var(--text);
+    }
+
+    .form-actions .danger {
+      background: rgba(255, 107, 107, .16);
+      color: #ffdede;
+      border: 1px solid rgba(255, 107, 107, .42);
+    }
+
+    .archive-locks {
+      display: grid;
+      gap: 8px;
+    }
+
+    .archive-lock-row,
+    .archive-lock-header {
+      display: grid;
+      grid-template-columns: 46px 1fr 34px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .archive-lock-header {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .archive-lock-row {
+      min-height: 48px;
+      padding: 9px 10px;
+      border: 1px solid rgba(255, 255, 255, .07);
+      border-radius: 12px;
+      background: #171c21;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+      transition: opacity .16s ease, transform .16s ease;
+    }
+
+    .archive-lock-row.is-removed {
+      opacity: .42;
+    }
+
+    .archive-lock-row.is-removed .archive-period {
+      text-decoration: line-through;
+    }
+
+    .archive-number {
+      color: var(--muted);
+    }
+
+    .archive-period {
+      display: grid;
+      gap: 3px;
+      line-height: 1.25;
+    }
+
+    .archive-lock-remove {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 107, 107, .42);
+      border-radius: 9px;
+      background: rgba(255, 107, 107, .16);
+      color: #ffdede;
+      cursor: pointer;
+    }
+
+    .archive-lock-remove:disabled,
+    .archive-lock-remove[aria-disabled="true"] {
+      border-color: rgba(255, 255, 255, .08);
+      background: var(--panel-3);
+      color: var(--soft);
+      cursor: not-allowed;
+      opacity: .72;
+    }
+
+    .archive-lock-remove svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 22px 0 24px;
+    }
+
+    .meta-badge {
+      min-height: 30px;
+      color: #dce3ea;
+      background: var(--panel-2);
+    }
+
+    .meta-badge.primary {
+      border-color: rgba(111, 182, 255, .3);
+      color: #eaf5ff;
+      background: rgba(111, 182, 255, .16);
+    }
+
+    .meta-badge.muted {
+      color: var(--muted);
+    }
+
+    .row-action {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      margin: 2px 0 30px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      background: transparent;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .row-action svg {
+      width: 19px;
+      height: 19px;
+    }
+
+    .details {
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      display: grid;
+      gap: 18px;
+    }
+
+    .detail-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: start;
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.18;
+    }
+
+    .detail-label {
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .copy-button {
+      width: 26px;
+      height: 26px;
+      display: inline-grid;
+      place-items: center;
+      margin-left: 8px;
+      border: 0;
+      background: transparent;
+      color: #fff;
+      vertical-align: middle;
+      cursor: pointer;
+    }
+
+    .copy-icon {
+      position: relative;
+      width: 15px;
+      height: 18px;
+      border: 2px solid currentColor;
+      border-radius: 2px;
+    }
+
+    .copy-icon::before {
+      content: "";
+      position: absolute;
+      top: -5px;
+      left: -5px;
+      width: 15px;
+      height: 18px;
+      border: 2px solid currentColor;
+      border-radius: 2px;
+      background: var(--panel);
+    }
+
+    .notes {
+      padding: 24px;
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 20px;
+      background: rgba(37, 43, 49, .72);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, .26);
+    }
+
+    .notes h2 {
+      margin: 0 0 16px;
+      font-size: 22px;
+    }
+
+    .legend {
+      display: grid;
+      gap: 22px;
+    }
+
+    .legend-section h3 {
+      margin: 0 0 10px;
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .notes .legend-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .legend-item {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 10px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    .legend-item .state-icon,
+    .legend-item .status-pill {
+      justify-self: start;
+    }
+
+    .notes ul {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    .notes strong {
+      color: var(--text);
+    }
+
+    @media (max-width: 860px) {
+      .stage {
+        grid-template-columns: 1fr;
+        padding: 18px;
+      }
+
+      .camera-card {
+        max-width: 480px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <aside class="notes" aria-label="Легенда статусов камеры">
+      <h2>Легенда</h2>
+
+      <div class="legend">
+        <section class="legend-section" aria-label="Статус работы">
+          <h3>Статус работы</h3>
+          <ul class="legend-list">
+            <li class="legend-item">
+              <span class="status-pill"><span class="status-dot"></span></span>
+              <span>Зеленая точка — камера работает</span>
+            </li>
+            <li class="legend-item">
+              <span class="status-pill"><span class="status-dot offline"></span></span>
+              <span>Красная точка — камера не работает</span>
+            </li>
+            <li class="legend-item">
+              <span class="status-pill"><span class="status-dot deleted"></span></span>
+              <span>Серая точка — камера удалена</span>
+            </li>
+          </ul>
+        </section>
+
+        <section class="legend-section" aria-label="Ограничения и резерв">
+          <h3>Ограничения и резерв</h3>
+          <ul class="legend-list">
+            <li class="legend-item">
+              <span class="state-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M7 10V8a5 5 0 0 1 10 0v2h1.5A1.5 1.5 0 0 1 20 11.5v8A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5v-8A1.5 1.5 0 0 1 5.5 10zm2 0h6V8a3 3 0 0 0-6 0z"/>
+                </svg>
+              </span>
+              <span>Замочек — блокировка самой камеры</span>
+            </li>
+            <li class="legend-item">
+              <span class="state-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="m13.8 3 7.2 7.2-1.4 1.4-1.2-1.2-4.5 4.5.6 3.6-1.4 1.4-4-4L4.8 20.2 3.4 18.8l4.3-4.3-4-4 1.4-1.4 3.6.6 4.5-4.5L12 4.4z"/>
+                </svg>
+              </span>
+              <span>Булавка — блокировка положения камеры</span>
+            </li>
+            <li class="legend-item">
+              <span class="state-icon reserve">R</span>
+              <span>R — камера зарезервирована</span>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </aside>
+
+    <article class="camera-card" aria-label="Карточка камеры porter_full">
+      <section class="video" aria-label="Видео с камеры">
+        <div class="drag-handle" title="Перетащить карточку" aria-label="Перетащить карточку">
+          <span class="drag-dots" aria-hidden="true"></span>
+        </div>
+
+        <div class="status-stack" aria-label="Статусы камеры">
+          <span class="status-pill" title="Онлайн"><span class="status-dot"></span></span>
+          <button class="state-icon" type="button" data-state-icon="camera-lock" data-open-form="archive-unlocks" title="До разблокировки камеры: 42 минуты. Нажмите, чтобы открыть список блокировок архива" aria-label="Открыть снятие блокировок архива">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 10V8a5 5 0 0 1 10 0v2h1.5A1.5 1.5 0 0 1 20 11.5v8A1.5 1.5 0 0 1 18.5 21h-13A1.5 1.5 0 0 1 4 19.5v-8A1.5 1.5 0 0 1 5.5 10zm2 0h6V8a3 3 0 0 0-6 0z"/>
+            </svg>
+          </button>
+          <span class="state-icon" data-state-icon="position-lock" title="До разблокировки положения: 1 час 15 минут">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m13.8 3 7.2 7.2-1.4 1.4-1.2-1.2-4.5 4.5.6 3.6-1.4 1.4-4-4L4.8 20.2 3.4 18.8l4.3-4.3-4-4 1.4-1.4 3.6.6 4.5-4.5L12 4.4z"/>
+            </svg>
+          </span>
+          <span class="state-icon reserve" data-state-icon="reservation" title="Резерв активен, глубина архива: 72 часа">R</span>
+        </div>
+
+        <button class="close-button" type="button" aria-label="Закрыть карточку">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+          </svg>
+        </button>
+
+        <div class="quick-actions" aria-label="Быстрые действия">
+          <button class="action-button" type="button" title="Пауза" aria-label="Пауза">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 5h4v14H6zm8 0h4v14h-4z"/>
+            </svg>
+          </button>
+          <button class="action-button" type="button" title="Обновить поток" aria-label="Обновить поток">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18.7 7.4A8 8 0 1 0 20 12h-2.3a5.7 5.7 0 1 1-1.1-3.3L13 12.3h8V4.4z"/>
+            </svg>
+          </button>
+          <button class="action-button" type="button" title="Сменить поток" aria-label="Сменить поток">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M19.4 13.5v-3l2-1.5V6.7l-3.3 2.5H14v5.6h4.1l3.3 2.5V15zM3 5h9v2H3zm0 6h9v2H3zm0 6h9v2H3z"/>
+            </svg>
+          </button>
+          <button class="action-button" type="button" title="Звук выключен" aria-label="Звук выключен">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 9v6h4l5 4V5L7 9zm13.8 3 3.1-3.1-1.4-1.4-3.1 3.1-3.1-3.1-1.4 1.4L14 12l-3.1 3.1 1.4 1.4 3.1-3.1 3.1 3.1 1.4-1.4z"/>
+            </svg>
+          </button>
+          <button class="action-button" type="button" title="На весь экран" aria-label="На весь экран">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 5h7v2H6v5H4zm9 0h7v7h-2V7h-5zM6 13v5h5v2H4v-7zm12 5v-5h2v7h-7v-2z"/>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <section class="card-body">
+        <header class="camera-heading">
+          <div>
+            <div class="title-row">
+              <span class="camera-kind" aria-hidden="true"><span class="kind-alert">!</span></span>
+              <span class="chevron" aria-hidden="true"></span>
+              <h1>porter_full</h1>
+            </div>
+            <p class="subtitle">Самара</p>
+          </div>
+
+          <details class="more">
+            <summary class="more-button" aria-label="Открыть меню действий">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>
+              </svg>
+            </summary>
+            <div class="menu" role="menu">
+              <button type="button" data-open-form="archive">Изменить глубину архива</button>
+              <button type="button" data-open-form="settings">Настройки камеры</button>
+              <hr>
+              <button type="button" data-open-form="camera-lock">Блокировка камеры</button>
+              <button type="button" data-open-form="position-lock">Блокировка положения камеры</button>
+              <button type="button" data-open-form="reservation">Резервирование камеры</button>
+            </div>
+          </details>
+        </header>
+
+        <section class="state-form" data-form="archive" aria-label="Форма изменения глубины архива">
+          <header>
+            <h2>Изменить глубину архива</h2>
+            <button class="form-close-button" type="button" data-close-form aria-label="Закрыть форму">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+              </svg>
+            </button>
+          </header>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="archive-depth">Глубина архива</label>
+              <select id="archive-depth">
+                <option>24 часа</option>
+                <option selected>72 часа</option>
+                <option>7 суток</option>
+                <option>30 суток</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button">Сохранить</button>
+            <button class="secondary" type="button" data-close-form>Отмена</button>
+          </div>
+        </section>
+
+        <section class="state-form" data-form="settings" aria-label="Форма настроек камеры">
+          <header>
+            <h2>Настройки камеры</h2>
+            <button class="form-close-button" type="button" data-close-form aria-label="Закрыть форму">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+              </svg>
+            </button>
+          </header>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="camera-stream">Поток</label>
+              <select id="camera-stream">
+                <option selected>Основной поток</option>
+                <option>Дополнительный поток</option>
+                <option>Низкое качество</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button">Сохранить</button>
+            <button class="secondary" type="button" data-close-form>Отмена</button>
+          </div>
+        </section>
+
+        <section class="state-form" data-form="camera-lock" aria-label="Форма блокировки камеры">
+          <header>
+            <h2>Блокировка камеры</h2>
+            <button class="form-close-button" type="button" data-close-form aria-label="Закрыть форму">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+              </svg>
+            </button>
+          </header>
+          <div class="form-grid">
+            <div class="time-fields">
+              <div class="form-field">
+                <label for="camera-lock-amount">Число</label>
+                <input id="camera-lock-amount" type="number" min="1" value="45">
+              </div>
+              <div class="form-field">
+                <label for="camera-lock-unit">Единица</label>
+                <select id="camera-lock-unit">
+                  <option selected>минуты</option>
+                  <option>секунды</option>
+                  <option>часы</option>
+                  <option>дни</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" data-activate-state="camera-lock" data-title-prefix="До разблокировки камеры" data-amount-field="camera-lock-amount" data-unit-field="camera-lock-unit">Сохранить</button>
+            <button class="secondary" type="button" data-close-form>Отмена</button>
+            <button class="danger" type="button" data-release-state="camera-lock">Снять блокировку</button>
+          </div>
+        </section>
+
+        <section class="state-form" data-form="archive-unlocks" aria-label="Форма снятия блокировок архива">
+          <header>
+            <h2>Снятие блокировок архива</h2>
+            <button class="form-close-button" type="button" data-close-form aria-label="Закрыть форму">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+              </svg>
+            </button>
+          </header>
+
+          <div class="archive-locks">
+            <div class="archive-lock-header" aria-hidden="true">
+              <span>№</span>
+              <span>Период</span>
+              <span></span>
+            </div>
+
+            <div class="archive-lock-row">
+              <span class="archive-number">1</span>
+              <span class="archive-period">14.07.2026 08:00 — 14.07.2026 12:00</span>
+              <button class="archive-lock-remove" type="button" data-release-archive-lock title="Можно снять блокировку" aria-label="Снять блокировку архива №1">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="archive-lock-row">
+              <span class="archive-number">2</span>
+              <span class="archive-period">14.07.2026 12:00 — 14.07.2026 18:00</span>
+              <button class="archive-lock-remove" type="button" aria-disabled="true" title="Запрещено: недостаточно прав" aria-label="Снятие блокировки архива №2 недоступно">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="archive-lock-row">
+              <span class="archive-number">3</span>
+              <span class="archive-period">15.07.2026 09:30 — 15.07.2026 13:30</span>
+              <button class="archive-lock-remove" type="button" data-release-archive-lock title="Можно снять блокировку" aria-label="Снять блокировку архива №3">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="archive-lock-row">
+              <span class="archive-number">4</span>
+              <span class="archive-period">16.07.2026 00:00 — 16.07.2026 23:59</span>
+              <button class="archive-lock-remove" type="button" aria-disabled="true" title="Запрещено: недостаточно прав" aria-label="Снятие блокировки архива №4 недоступно">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="secondary" type="button" data-close-form>Закрыть</button>
+          </div>
+        </section>
+
+        <section class="state-form" data-form="position-lock" aria-label="Форма блокировки положения камеры">
+          <header>
+            <h2>Блокировка положения камеры</h2>
+            <button class="form-close-button" type="button" data-close-form aria-label="Закрыть форму">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+              </svg>
+            </button>
+          </header>
+          <div class="form-grid">
+            <div class="time-fields">
+              <div class="form-field">
+                <label for="position-lock-amount">Число</label>
+                <input id="position-lock-amount" type="number" min="1" value="75">
+              </div>
+              <div class="form-field">
+                <label for="position-lock-unit">Единица</label>
+                <select id="position-lock-unit">
+                  <option selected>минуты</option>
+                  <option>секунды</option>
+                  <option>часы</option>
+                  <option>дни</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" data-activate-state="position-lock" data-title-prefix="До разблокировки положения" data-amount-field="position-lock-amount" data-unit-field="position-lock-unit">Сохранить</button>
+            <button class="secondary" type="button" data-close-form>Отмена</button>
+            <button class="danger" type="button" data-release-state="position-lock">Снять блокировку</button>
+          </div>
+        </section>
+
+        <section class="state-form" data-form="reservation" aria-label="Форма резервирования камеры">
+          <header>
+            <h2>Резервирование камеры</h2>
+            <button class="form-close-button" type="button" data-close-form aria-label="Закрыть форму">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+              </svg>
+            </button>
+          </header>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="reserve-depth">Глубина архива</label>
+              <select id="reserve-depth">
+                <option>24 часа</option>
+                <option selected>72 часа</option>
+                <option>7 суток</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" data-activate-state="reservation" data-depth-field="reserve-depth">Сохранить</button>
+            <button class="secondary" type="button" data-close-form>Отмена</button>
+            <button class="danger" type="button" data-release-state="reservation">Снять резерв</button>
+          </div>
+        </section>
+
+        <div class="badges" aria-label="Краткие характеристики">
+          <span class="meta-badge">Внешняя</span>
+          <span class="meta-badge">Проекция</span>
+        </div>
+
+        <button class="row-action" type="button" title="Добавить действие" aria-label="Добавить действие">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/>
+          </svg>
+        </button>
+
+        <dl class="details">
+          <div class="detail-row">
+            <dt class="detail-label">53.166717, 50.13226</dt>
+            <dd>
+              <button class="copy-button" type="button" aria-label="Скопировать координаты">
+                <span class="copy-icon" aria-hidden="true"></span>
+              </button>
+            </dd>
+          </div>
+          <div class="detail-row">
+            <dt class="detail-label">Адрес</dt>
+            <dd>Лютиковая<br>площадь</dd>
+          </div>
+          <div class="detail-row">
+            <dt class="detail-label">Назначение</dt>
+            <dd>стараяООО</dd>
+          </div>
+        </dl>
+      </section>
+    </article>
+
+  </main>
+  <script>
+    const forms = document.querySelectorAll("[data-form]");
+    const menuButtons = document.querySelectorAll("[data-open-form]");
+    const closeButtons = document.querySelectorAll("[data-close-form]");
+    const releaseButtons = document.querySelectorAll("[data-release-state]");
+    const activateButtons = document.querySelectorAll("[data-activate-state]");
+    const archiveReleaseButtons = document.querySelectorAll("[data-release-archive-lock]");
+
+    function openForm(name) {
+      forms.forEach((form) => {
+        form.classList.toggle("is-open", form.dataset.form === name);
+      });
+      syncReleaseButtons();
+    }
+
+    function closeForms() {
+      forms.forEach((form) => form.classList.remove("is-open"));
+    }
+
+    menuButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        openForm(button.dataset.openForm);
+        button.closest("details")?.removeAttribute("open");
+      });
+    });
+
+    closeButtons.forEach((button) => {
+      button.addEventListener("click", closeForms);
+    });
+
+    releaseButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const state = button.dataset.releaseState;
+        const icon = document.querySelector(`[data-state-icon="${state}"]`);
+
+        icon?.classList.add("is-hidden");
+        syncReleaseButtons();
+        closeForms();
+      });
+    });
+
+    activateButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const state = button.dataset.activateState;
+        const icon = document.querySelector(`[data-state-icon="${state}"]`);
+
+        icon?.classList.remove("is-hidden");
+        icon?.setAttribute("title", getStateTitle(button));
+        syncReleaseButtons();
+        closeForms();
+      });
+    });
+
+    archiveReleaseButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        button.closest(".archive-lock-row")?.classList.add("is-removed");
+        button.disabled = true;
+      });
+    });
+
+    function getStateTitle(button) {
+      if (button.dataset.depthField) {
+        const depth = document.getElementById(button.dataset.depthField)?.value;
+        return `Резерв активен, глубина архива: ${depth}`;
+      }
+
+      const amount = document.getElementById(button.dataset.amountField)?.value;
+      const unit = document.getElementById(button.dataset.unitField)?.value;
+      const title = `${button.dataset.titlePrefix}: ${amount} ${unit}`;
+
+      if (button.dataset.activateState === "camera-lock") {
+        return `${title}. Нажмите, чтобы открыть список блокировок архива`;
+      }
+
+      return title;
+    }
+
+    function syncReleaseButtons() {
+      releaseButtons.forEach((button) => {
+        const state = button.dataset.releaseState;
+        const icon = document.querySelector(`[data-state-icon="${state}"]`);
+
+        button.disabled = !icon || icon.classList.contains("is-hidden");
+      });
+    }
+
+    syncReleaseButtons();
+  </script>
+</body>
+</html>
