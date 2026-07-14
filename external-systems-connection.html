@@ -1,0 +1,1191 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Подключение внешних систем ППУВ</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      padding: 30px 16px;
+      background: #0f1117;
+      color: #e5e7eb;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .page {
+      width: min(1220px, 100%);
+      margin: 0 auto;
+    }
+
+    .page-header,
+    .table-card {
+      border: 1px solid #262a36;
+      border-radius: 12px;
+      background: #1a1d27;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, .3), 0 2px 6px rgba(0, 0, 0, .2);
+    }
+
+    .page-header {
+      margin-bottom: 18px;
+      padding: 20px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      color: #9ca3af;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .section-title::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      background: #3b82f6;
+    }
+
+    h1 {
+      color: #f8fafc;
+      font-size: clamp(24px, 3vw, 32px);
+      line-height: 1.12;
+    }
+
+    .table-card {
+      overflow: hidden;
+    }
+
+    .table-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid #262a36;
+      color: #f1f5f9;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      min-width: 1160px;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th {
+      position: relative;
+      padding: 10px 12px;
+      border-bottom: 1px solid #262a36;
+      color: #9ca3af;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .02em;
+      text-align: left;
+      text-transform: uppercase;
+      white-space: nowrap;
+      vertical-align: top;
+    }
+
+    td {
+      padding: 13px 12px;
+      border-bottom: 1px solid #1e2230;
+      color: #e5e7eb;
+      vertical-align: middle;
+    }
+
+    tbody tr {
+      cursor: pointer;
+      transition: background .15s ease;
+    }
+
+    tbody tr:hover,
+    tbody tr:focus {
+      background: #1e2230;
+      outline: none;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .header-cell {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .header-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .header-icon {
+      width: 24px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: 5px;
+      background: transparent;
+      color: #9ca3af;
+      cursor: pointer;
+      font-size: 13px;
+      line-height: 1;
+      transition: background .15s, color .15s;
+    }
+
+    .header-icon:hover,
+    .header-icon.is-active {
+      background: #1e2230;
+      color: #60a5fa;
+    }
+
+    .header-icon.is-running {
+      color: #60a5fa;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .filter-popover {
+      position: absolute;
+      top: 42px;
+      left: 12px;
+      z-index: 5;
+      min-width: 220px;
+      display: none;
+      padding: 10px;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      background: #111827;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, .45);
+    }
+
+    .filter-popover.is-open {
+      display: block;
+    }
+
+    .filter-control,
+    .form-control {
+      width: 100%;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      outline: none;
+      background: #111827;
+      color: #e5e7eb;
+      transition: border-color .15s, box-shadow .15s;
+    }
+
+    .filter-control {
+      padding: 8px 10px;
+      font-size: 13px;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .form-control {
+      min-height: 40px;
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+
+    .filter-control:focus,
+    .form-control:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, .16);
+    }
+
+    .region-name {
+      min-width: 170px;
+      color: #f1f5f9;
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .mono-cell,
+    .url-cell {
+      color: #d1d5db;
+      font-size: 13px;
+    }
+
+    .mono-cell {
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+
+    .url-cell {
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .badge::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .badge-success {
+      background: #0f1f17;
+      color: #4ade80;
+    }
+
+    .badge-success::before {
+      background: #22c55e;
+    }
+
+    .badge-error {
+      background: #1f1315;
+      color: #f87171;
+    }
+
+    .badge-error::before {
+      background: #ef4444;
+    }
+
+    .badge-progress {
+      background: #1e293b;
+      color: #60a5fa;
+    }
+
+    .badge-progress::before {
+      background: #3b82f6;
+      animation: pulse 1.2s infinite;
+    }
+
+    .badge-idle {
+      background: #1f2937;
+      color: #9ca3af;
+    }
+
+    .badge-idle::before {
+      background: #6b7280;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .4; }
+    }
+
+    .status-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #d1d5db;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .status-toggle input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .toggle-slider {
+      position: relative;
+      width: 40px;
+      height: 22px;
+      display: inline-block;
+      flex: none;
+      border-radius: 999px;
+      background: #374151;
+      transition: background .2s;
+    }
+
+    .toggle-slider::before {
+      content: "";
+      position: absolute;
+      left: 2px;
+      top: 2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #e5e7eb;
+      transition: transform .2s;
+    }
+
+    .status-toggle input:checked + .toggle-slider {
+      background: #2563eb;
+    }
+
+    .status-toggle input:checked + .toggle-slider::before {
+      transform: translateX(18px);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 36px;
+      padding: 8px 14px;
+      border: 0;
+      border-radius: 7px;
+      background: #2563eb;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .btn:hover {
+      background: #1d4ed8;
+    }
+
+    .btn:disabled {
+      background: #374151;
+      color: #6b7280;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: #374151;
+      color: #d1d5db;
+    }
+
+    .btn-secondary:hover {
+      background: #4b5563;
+      color: #fff;
+    }
+
+    .empty-state {
+      padding: 26px;
+      color: #9ca3af;
+      text-align: center;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(0, 0, 0, .62);
+    }
+
+    .modal-overlay.is-open {
+      display: flex;
+    }
+
+    .installation-card {
+      width: min(760px, 100%);
+      max-height: calc(100vh - 36px);
+      overflow-y: auto;
+      border: 1px solid #343b44;
+      border-radius: 15px;
+      background: #252b31;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .45);
+    }
+
+    .card-top {
+      position: relative;
+      padding: 20px 24px;
+      border-bottom: 1px solid #171a1e;
+      background:
+        radial-gradient(circle at 88% 8%, rgba(96, 165, 250, .18), transparent 30%),
+        #1a1d27;
+    }
+
+    .card-title {
+      color: #f8fafc;
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .card-close {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 46px;
+      height: 46px;
+      border: 0;
+      border-bottom-left-radius: 12px;
+      background: rgba(37, 43, 49, .92);
+      color: #fff;
+      font-size: 28px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .card-body {
+      padding: 20px 24px 24px;
+    }
+
+    .card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .form-section {
+      margin-bottom: 18px;
+    }
+
+    .form-section:last-of-type {
+      margin-bottom: 0;
+    }
+
+    .form-section-title {
+      margin-bottom: 12px;
+      color: #f1f5f9;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .form-field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .form-field.wide {
+      grid-column: 1 / -1;
+    }
+
+    .form-field label {
+      color: #d1d5db;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .required-star {
+      color: #f87171;
+      margin-left: 3px;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 16px 10px;
+      }
+
+      .page-header,
+      .card-body,
+      .card-top {
+        padding: 16px;
+      }
+
+      .table-title {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-actions {
+        flex-direction: column-reverse;
+      }
+
+      .card-actions {
+        flex-direction: column;
+      }
+
+      .form-actions button {
+        width: 100%;
+      }
+
+      .card-actions button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <div class="section-title">ППУВ / Федерация</div>
+      <h1>Подключение внешних систем</h1>
+    </header>
+
+    <section class="table-card" aria-label="Подключенные регионы">
+      <div class="table-title">
+        <span>Подключенные регионы</span>
+        <button class="btn" type="button" onclick="openCreateForm()">+ Добавить регион</button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>
+                <div class="header-cell">
+                  <span>Регион</span>
+                  <span class="header-actions">
+                    <button class="header-icon" type="button" data-filter-button="region" title="Фильтр по региону" aria-label="Фильтр по региону">⌕</button>
+                  </span>
+                </div>
+                <div class="filter-popover" data-filter-panel="region">
+                  <input class="filter-control" type="search" placeholder="Найти регион" data-filter-input="region">
+                </div>
+              </th>
+              <th>
+                <div class="header-cell">
+                  <span>Installation ID</span>
+                  <span class="header-actions">
+                    <button class="header-icon" type="button" data-filter-button="installationId" title="Фильтр по ID" aria-label="Фильтр по ID">⌕</button>
+                  </span>
+                </div>
+                <div class="filter-popover" data-filter-panel="installationId">
+                  <input class="filter-control" type="search" placeholder="Найти ID" data-filter-input="installationId">
+                </div>
+              </th>
+              <th>
+                <div class="header-cell">
+                  <span>Federation Gateway</span>
+                  <span class="header-actions">
+                    <button class="header-icon" type="button" data-filter-button="gateway" title="Фильтр по URL" aria-label="Фильтр по URL">⌕</button>
+                  </span>
+                </div>
+                <div class="filter-popover" data-filter-panel="gateway">
+                  <input class="filter-control" type="search" placeholder="Найти URL" data-filter-input="gateway">
+                </div>
+              </th>
+              <th>
+                <div class="header-cell">
+                  <span>Статус региона</span>
+                  <span class="header-actions">
+                    <button class="header-icon" type="button" data-filter-button="status" title="Фильтр по статусу" aria-label="Фильтр по статусу">⌕</button>
+                  </span>
+                </div>
+                <div class="filter-popover" data-filter-panel="status">
+                  <select class="filter-control" data-filter-input="status">
+                    <option value="">Все</option>
+                    <option value="Enabled">Enabled</option>
+                    <option value="Disabled">Disabled</option>
+                  </select>
+                </div>
+              </th>
+              <th>
+                <div class="header-cell">
+                  <span>Probe</span>
+                  <span class="header-actions">
+                    <button class="header-icon" type="button" data-sync="probe" title="Проверить все регионы" aria-label="Проверить все регионы">↻</button>
+                    <button class="header-icon" type="button" data-filter-button="probe" title="Фильтр по probe" aria-label="Фильтр по probe">⌕</button>
+                  </span>
+                </div>
+                <div class="filter-popover" data-filter-panel="probe">
+                  <select class="filter-control" data-filter-input="probe">
+                    <option value="">Все</option>
+                    <option value="Reachable">Reachable</option>
+                    <option value="Checking">Checking</option>
+                    <option value="Unavailable">Unavailable</option>
+                  </select>
+                </div>
+              </th>
+              <th>
+                <div class="header-cell">
+                  <span>Дата проверки</span>
+                </div>
+              </th>
+              <th>
+                <div class="header-cell">
+                  <span>Catalog sync</span>
+                  <span class="header-actions">
+                    <button class="header-icon" type="button" data-sync="catalog" title="Синхронизировать каталоги" aria-label="Синхронизировать каталоги">↻</button>
+                    <button class="header-icon" type="button" data-filter-button="catalog" title="Фильтр по catalog sync" aria-label="Фильтр по catalog sync">⌕</button>
+                  </span>
+                </div>
+                <div class="filter-popover" data-filter-panel="catalog">
+                  <select class="filter-control" data-filter-input="catalog">
+                    <option value="">Все</option>
+                    <option value="Synced">Synced</option>
+                    <option value="Syncing">Syncing</option>
+                    <option value="Not synced">Not synced</option>
+                    <option value="Sync error">Sync error</option>
+                  </select>
+                </div>
+              </th>
+              <th>
+                <div class="header-cell">
+                  <span>Дата синхронизации</span>
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="installationsBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-overlay" id="formModal" aria-hidden="true">
+    <article class="installation-card" role="dialog" aria-modal="true" aria-labelledby="formTitle">
+      <section class="card-top">
+        <button class="card-close" type="button" aria-label="Закрыть форму" onclick="closeForm()">×</button>
+        <div class="card-title" id="formTitle">Регион</div>
+      </section>
+      <form class="card-body" id="installationForm" onsubmit="saveInstallation(event)">
+        <input type="hidden" id="formInstallationKey">
+
+        <div class="card-actions">
+          <button class="btn btn-secondary" id="formStatusAction" type="button" onclick="toggleStatusFromForm()">Отключить регион</button>
+          <button class="btn" id="formProbeAction" type="button" onclick="runProbeFromForm()">↻ Проверить подключение</button>
+          <button class="btn" id="formCatalogAction" type="button" onclick="runCatalogSyncFromForm()">↻ Синхронизировать каталог</button>
+        </div>
+
+        <section class="form-section">
+          <div class="form-section-title">Основное</div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="regionInput">Регион<span class="required-star">*</span></label>
+              <input class="form-control" id="regionInput" type="text" required>
+            </div>
+            <div class="form-field">
+              <label for="installationIdInput">Installation ID</label>
+              <input class="form-control" id="installationIdInput" type="text">
+            </div>
+            <div class="form-field wide">
+              <label for="gatewayInput">FederationGatewayBaseUrl<span class="required-star">*</span></label>
+              <input class="form-control" id="gatewayInput" type="url" required>
+            </div>
+            <div class="form-field">
+              <label for="statusInput">Статус региона</label>
+              <select class="form-control" id="statusInput" onchange="updateFormActions()">
+                <option value="Enabled">Enabled</option>
+                <option value="Disabled">Disabled</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="modeInput">Mode</label>
+              <input class="form-control" id="modeInput" type="text" value="PeerFgs" readonly>
+            </div>
+            <div class="form-field">
+              <label for="probeInput">Probe</label>
+              <select class="form-control" id="probeInput">
+                <option value="Reachable">Reachable</option>
+                <option value="Checking">Checking</option>
+                <option value="Unavailable">Unavailable</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="lastProbeInput">Дата проверки</label>
+              <input class="form-control" id="lastProbeInput" type="text">
+            </div>
+            <div class="form-field">
+              <label for="catalogInput">Catalog sync</label>
+              <select class="form-control" id="catalogInput">
+                <option value="Synced">Synced</option>
+                <option value="Syncing">Syncing</option>
+                <option value="Not synced">Not synced</option>
+                <option value="Sync error">Sync error</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="lastCatalogInput">Дата синхронизации</label>
+              <input class="form-control" id="lastCatalogInput" type="text">
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <div class="form-section-title">OAuth</div>
+          <div class="form-grid">
+            <div class="form-field wide">
+              <label for="tokenUrlInput">TokenUrl<span class="required-star">*</span></label>
+              <input class="form-control" id="tokenUrlInput" type="url" required>
+            </div>
+            <div class="form-field">
+              <label for="clientIdInput">ClientId<span class="required-star">*</span></label>
+              <input class="form-control" id="clientIdInput" type="text" required>
+            </div>
+            <div class="form-field">
+              <label for="clientSecretInput">ClientSecret<span class="required-star">*</span></label>
+              <input class="form-control" id="clientSecretInput" type="password" required>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <div class="form-section-title">Trust / Security</div>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="thumbprintInput">CertificateThumbprint</label>
+              <input class="form-control" id="thumbprintInput" type="text">
+            </div>
+            <div class="form-field">
+              <label for="mtlsInput">RequireMutualTls</label>
+              <select class="form-control" id="mtlsInput">
+                <option value="Нет">Нет</option>
+                <option value="Да">Да</option>
+              </select>
+            </div>
+            <div class="form-field wide">
+              <label for="allowedNetworksInput">AllowedNetworks</label>
+              <input class="form-control" id="allowedNetworksInput" type="text">
+            </div>
+          </div>
+        </section>
+
+        <div class="form-actions">
+          <button class="btn btn-secondary" type="button" onclick="closeForm()">Отмена</button>
+          <button class="btn" type="submit">Сохранить</button>
+        </div>
+      </form>
+    </article>
+  </div>
+
+  <script>
+    const installations = [
+      {
+        id: "samara",
+        region: "Регион Самара",
+        installationId: "71b1f5be-8f20-4b51-8a0e-0c2a7d9d0101",
+        federationGatewayBaseUrl: "https://samara.example.ru:8132",
+        status: "Enabled",
+        probe: "Reachable",
+        lastProbeAt: "14.07.2026, 09:38",
+        catalog: "Synced",
+        lastCatalogSyncAt: "14.07.2026, 09:16",
+        tokenUrl: "https://samara.example.ru/rm/connect/token",
+        clientId: "srvi-federation-samara",
+        clientSecret: "********",
+        requireMutualTls: "Да",
+        certificateThumbprint: "A4:52:91:...:7F",
+        allowedNetworks: "10.24.0.0/16"
+      },
+      {
+        id: "tolyatti",
+        region: "Регион Тольятти",
+        installationId: "18c5f49f-9d3d-4b03-9a4c-b83b26c10202",
+        federationGatewayBaseUrl: "https://tlt.example.ru:8132",
+        status: "Enabled",
+        probe: "Checking",
+        lastProbeAt: "Выполняется",
+        catalog: "Syncing",
+        lastCatalogSyncAt: "Выполняется",
+        tokenUrl: "https://tlt.example.ru/rm/connect/token",
+        clientId: "srvi-federation-tlt",
+        clientSecret: "********",
+        requireMutualTls: "Нет",
+        certificateThumbprint: "",
+        allowedNetworks: ""
+      },
+      {
+        id: "ulyanovsk",
+        region: "Регион Ульяновск",
+        installationId: "3bb17b9a-c6ec-4724-bc45-7c7682f30303",
+        federationGatewayBaseUrl: "https://uln.example.ru:8132",
+        status: "Disabled",
+        probe: "Unavailable",
+        lastProbeAt: "13.07.2026, 18:02",
+        catalog: "Not synced",
+        lastCatalogSyncAt: "-",
+        tokenUrl: "https://uln.example.ru/rm/connect/token",
+        clientId: "srvi-federation-uln",
+        clientSecret: "********",
+        requireMutualTls: "Да",
+        certificateThumbprint: "B1:42:00:...:E9",
+        allowedNetworks: "10.32.0.0/16"
+      },
+      {
+        id: "kazan",
+        region: "Регион Казань",
+        installationId: "82e7a2af-0f71-4959-a0f7-44fbd78d0404",
+        federationGatewayBaseUrl: "https://kazan.example.ru:8132",
+        status: "Enabled",
+        probe: "Reachable",
+        lastProbeAt: "14.07.2026, 08:57",
+        catalog: "Sync error",
+        lastCatalogSyncAt: "14.07.2026, 08:44",
+        tokenUrl: "https://kazan.example.ru/rm/connect/token",
+        clientId: "srvi-federation-kazan",
+        clientSecret: "********",
+        requireMutualTls: "Нет",
+        certificateThumbprint: "",
+        allowedNetworks: "10.40.0.0/16"
+      }
+    ];
+
+    const filters = {
+      region: "",
+      installationId: "",
+      gateway: "",
+      status: "",
+      probe: "",
+      catalog: ""
+    };
+
+    const installationsBody = document.getElementById("installationsBody");
+    const formModal = document.getElementById("formModal");
+
+    function renderTable() {
+      const visible = installations.filter(matchesFilters);
+
+      installationsBody.innerHTML = visible.length
+        ? visible.map(createRow).join("")
+        : '<tr><td colspan="8"><div class="empty-state">Региональные подключения не найдены</div></td></tr>';
+
+      installationsBody.querySelectorAll("tr[data-id]").forEach(row => {
+        row.addEventListener("click", () => openEditForm(row.dataset.id));
+        row.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openEditForm(row.dataset.id);
+          }
+        });
+      });
+    }
+
+    function createRow(installation) {
+      return '<tr tabindex="0" data-id="' + installation.id + '">' +
+        '<td><div class="region-name">' + escapeHtml(installation.region) + '</div></td>' +
+        '<td><div class="mono-cell" title="' + escapeHtml(installation.installationId) + '">' + escapeHtml(installation.installationId) + '</div></td>' +
+        '<td><div class="url-cell" title="' + escapeHtml(installation.federationGatewayBaseUrl) + '">' + escapeHtml(installation.federationGatewayBaseUrl) + '</div></td>' +
+        '<td>' + statusToggle(installation) + '</td>' +
+        '<td>' + statusBadge(installation.probe) + '</td>' +
+        '<td>' + escapeHtml(installation.lastProbeAt) + '</td>' +
+        '<td>' + statusBadge(installation.catalog) + '</td>' +
+        '<td>' + escapeHtml(installation.lastCatalogSyncAt) + '</td>' +
+      '</tr>';
+    }
+
+    function statusToggle(installation) {
+      const checked = installation.status === "Enabled" ? " checked" : "";
+      return '<label class="status-toggle" onclick="event.stopPropagation()">' +
+        '<input type="checkbox"' + checked + ' onchange="toggleInstallationStatus(event, \'' + installation.id + '\')">' +
+        '<span class="toggle-slider"></span>' +
+        '<span>' + escapeHtml(installation.status) + '</span>' +
+      '</label>';
+    }
+
+    function statusBadge(value) {
+      let className = "badge-idle";
+      if (value === "Reachable" || value === "Synced") className = "badge-success";
+      if (value === "Checking" || value === "Syncing") className = "badge-progress";
+      if (value === "Unavailable" || value === "Sync error") className = "badge-error";
+      return '<span class="badge ' + className + '">' + escapeHtml(value) + '</span>';
+    }
+
+    function matchesFilters(installation) {
+      if (filters.region && !installation.region.toLowerCase().includes(filters.region.toLowerCase())) return false;
+      if (filters.installationId && !installation.installationId.toLowerCase().includes(filters.installationId.toLowerCase())) return false;
+      if (filters.gateway && !installation.federationGatewayBaseUrl.toLowerCase().includes(filters.gateway.toLowerCase())) return false;
+      if (filters.status && installation.status !== filters.status) return false;
+      if (filters.probe && installation.probe !== filters.probe) return false;
+      if (filters.catalog && installation.catalog !== filters.catalog) return false;
+      return true;
+    }
+
+    function toggleInstallationStatus(event, installationId) {
+      event.stopPropagation();
+      const installation = getInstallation(installationId);
+      if (!installation) return;
+
+      installation.status = event.target.checked ? "Enabled" : "Disabled";
+      console.log("PATCH /federation/installations/" + installationId + "/status", { status: installation.status });
+      renderTable();
+    }
+
+    function runHeaderSync(type, button) {
+      button.classList.add("is-running");
+
+      installations.forEach(installation => {
+        if (installation.status !== "Enabled") return;
+        if (type === "probe") {
+          installation.probe = "Checking";
+          installation.lastProbeAt = "Выполняется";
+        } else {
+          installation.catalog = "Syncing";
+          installation.lastCatalogSyncAt = "Выполняется";
+        }
+      });
+
+      console.log(type === "probe"
+        ? "POST /federation/installations/*/probe"
+        : "POST /federation/installations/*/catalog/sync");
+      renderTable();
+
+      window.setTimeout(() => {
+        button.classList.remove("is-running");
+      }, 800);
+    }
+
+    function openCreateForm() {
+      document.getElementById("formTitle").textContent = "Добавить регион";
+      document.getElementById("installationForm").reset();
+      document.getElementById("formInstallationKey").value = "";
+      document.getElementById("statusInput").value = "Enabled";
+      document.getElementById("probeInput").value = "Unavailable";
+      document.getElementById("catalogInput").value = "Not synced";
+      document.getElementById("modeInput").value = "PeerFgs";
+      updateFormActions();
+      openForm();
+    }
+
+    function openEditForm(installationId) {
+      const installation = getInstallation(installationId);
+      if (!installation) return;
+
+      document.getElementById("formTitle").textContent = installation.region;
+      document.getElementById("formInstallationKey").value = installation.id;
+      document.getElementById("regionInput").value = installation.region;
+      document.getElementById("installationIdInput").value = installation.installationId;
+      document.getElementById("gatewayInput").value = installation.federationGatewayBaseUrl;
+      document.getElementById("statusInput").value = installation.status;
+      document.getElementById("modeInput").value = "PeerFgs";
+      document.getElementById("probeInput").value = installation.probe;
+      document.getElementById("lastProbeInput").value = installation.lastProbeAt;
+      document.getElementById("catalogInput").value = installation.catalog;
+      document.getElementById("lastCatalogInput").value = installation.lastCatalogSyncAt;
+      document.getElementById("tokenUrlInput").value = installation.tokenUrl;
+      document.getElementById("clientIdInput").value = installation.clientId;
+      document.getElementById("clientSecretInput").value = installation.clientSecret;
+      document.getElementById("thumbprintInput").value = installation.certificateThumbprint;
+      document.getElementById("mtlsInput").value = installation.requireMutualTls;
+      document.getElementById("allowedNetworksInput").value = installation.allowedNetworks;
+      updateFormActions();
+      openForm();
+    }
+
+    function updateFormActions() {
+      const existingId = document.getElementById("formInstallationKey").value;
+      const status = document.getElementById("statusInput").value;
+      const isExisting = Boolean(existingId);
+      const statusAction = document.getElementById("formStatusAction");
+      const probeAction = document.getElementById("formProbeAction");
+      const catalogAction = document.getElementById("formCatalogAction");
+
+      statusAction.disabled = !isExisting;
+      probeAction.disabled = !isExisting;
+      catalogAction.disabled = !isExisting;
+      statusAction.textContent = status === "Enabled" ? "Отключить регион" : "Включить регион";
+    }
+
+    function toggleStatusFromForm() {
+      const existingId = document.getElementById("formInstallationKey").value;
+      const installation = getInstallation(existingId);
+      if (!installation) return;
+
+      const nextStatus = document.getElementById("statusInput").value === "Enabled" ? "Disabled" : "Enabled";
+      document.getElementById("statusInput").value = nextStatus;
+      installation.status = nextStatus;
+      console.log("PATCH /federation/installations/" + existingId + "/status", { status: nextStatus });
+      updateFormActions();
+      renderTable();
+    }
+
+    function runProbeFromForm() {
+      const existingId = document.getElementById("formInstallationKey").value;
+      const installation = getInstallation(existingId);
+      if (!installation) return;
+
+      document.getElementById("probeInput").value = "Checking";
+      document.getElementById("lastProbeInput").value = "Выполняется";
+      installation.probe = "Checking";
+      installation.lastProbeAt = "Выполняется";
+      console.log("POST /federation/installations/" + existingId + "/probe");
+      renderTable();
+    }
+
+    function runCatalogSyncFromForm() {
+      const existingId = document.getElementById("formInstallationKey").value;
+      const installation = getInstallation(existingId);
+      if (!installation) return;
+
+      document.getElementById("catalogInput").value = "Syncing";
+      document.getElementById("lastCatalogInput").value = "Выполняется";
+      installation.catalog = "Syncing";
+      installation.lastCatalogSyncAt = "Выполняется";
+      console.log("POST /federation/installations/" + existingId + "/catalog/sync");
+      renderTable();
+    }
+
+    function openForm() {
+      formModal.classList.add("is-open");
+      formModal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeForm() {
+      formModal.classList.remove("is-open");
+      formModal.setAttribute("aria-hidden", "true");
+    }
+
+    function saveInstallation(event) {
+      event.preventDefault();
+
+      const existingId = document.getElementById("formInstallationKey").value;
+      const payload = readForm();
+
+      if (existingId) {
+        const index = installations.findIndex(installation => installation.id === existingId);
+        if (index !== -1) {
+          installations[index] = { ...installations[index], ...payload };
+          console.log("PUT /federation/installations/" + existingId, payload);
+        }
+      } else {
+        const id = "region-" + Date.now();
+        installations.push({ id, ...payload });
+        console.log("POST /federation/installations", payload);
+      }
+
+      renderTable();
+      closeForm();
+    }
+
+    function readForm() {
+      return {
+        region: document.getElementById("regionInput").value.trim(),
+        installationId: document.getElementById("installationIdInput").value.trim() || "new-installation-id",
+        federationGatewayBaseUrl: document.getElementById("gatewayInput").value.trim(),
+        status: document.getElementById("statusInput").value,
+        probe: document.getElementById("probeInput").value,
+        lastProbeAt: document.getElementById("lastProbeInput").value.trim() || "-",
+        catalog: document.getElementById("catalogInput").value,
+        lastCatalogSyncAt: document.getElementById("lastCatalogInput").value.trim() || "-",
+        tokenUrl: document.getElementById("tokenUrlInput").value.trim(),
+        clientId: document.getElementById("clientIdInput").value.trim(),
+        clientSecret: document.getElementById("clientSecretInput").value.trim(),
+        certificateThumbprint: document.getElementById("thumbprintInput").value.trim(),
+        requireMutualTls: document.getElementById("mtlsInput").value,
+        allowedNetworks: document.getElementById("allowedNetworksInput").value.trim()
+      };
+    }
+
+    function getInstallation(installationId) {
+      return installations.find(installation => installation.id === installationId);
+    }
+
+    function closeFilterPanels(except) {
+      document.querySelectorAll("[data-filter-panel]").forEach(panel => {
+        if (panel.dataset.filterPanel !== except) {
+          panel.classList.remove("is-open");
+        }
+      });
+
+      document.querySelectorAll("[data-filter-button]").forEach(button => {
+        if (button.dataset.filterButton !== except) {
+          button.classList.remove("is-active");
+        }
+      });
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    document.querySelectorAll("[data-filter-button]").forEach(button => {
+      button.addEventListener("click", event => {
+        event.stopPropagation();
+        const key = button.dataset.filterButton;
+        const panel = document.querySelector('[data-filter-panel="' + key + '"]');
+        const willOpen = !panel.classList.contains("is-open");
+        closeFilterPanels(key);
+        panel.classList.toggle("is-open", willOpen);
+        button.classList.toggle("is-active", willOpen);
+        const control = panel.querySelector(".filter-control");
+        if (willOpen && control) control.focus();
+      });
+    });
+
+    document.querySelectorAll("[data-filter-input]").forEach(control => {
+      control.addEventListener("input", () => {
+        filters[control.dataset.filterInput] = control.value;
+        renderTable();
+      });
+      control.addEventListener("change", () => {
+        filters[control.dataset.filterInput] = control.value;
+        renderTable();
+      });
+    });
+
+    document.querySelectorAll("[data-sync]").forEach(button => {
+      button.addEventListener("click", event => {
+        event.stopPropagation();
+        runHeaderSync(button.dataset.sync, button);
+      });
+    });
+
+    document.addEventListener("click", event => {
+      if (!event.target.closest("th")) {
+        closeFilterPanels();
+      }
+    });
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        closeForm();
+        closeFilterPanels();
+      }
+    });
+
+    formModal.addEventListener("click", event => {
+      if (event.target === formModal) {
+        closeForm();
+      }
+    });
+
+    renderTable();
+  </script>
+</body>
+</html>
