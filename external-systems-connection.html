@@ -13,36 +13,33 @@
 
     body {
       min-height: 100vh;
-      padding: 32px 16px;
+      padding: 30px 16px;
       background: #0f1117;
       color: #e5e7eb;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     }
 
-    button {
+    button,
+    input,
+    select {
       font: inherit;
     }
 
     .page {
       width: min(1180px, 100%);
       margin: 0 auto;
-      display: grid;
-      gap: 18px;
     }
 
-    .hero,
-    .content-card {
+    .page-header {
+      margin-bottom: 18px;
+      padding: 20px;
       border: 1px solid #262a36;
-      border-radius: 14px;
+      border-radius: 12px;
       background: #1a1d27;
       box-shadow: 0 8px 20px rgba(0, 0, 0, .3), 0 2px 6px rgba(0, 0, 0, .2);
     }
 
-    .hero {
-      padding: 22px;
-    }
-
-    .section-label {
+    .section-title {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -54,7 +51,7 @@
       text-transform: uppercase;
     }
 
-    .section-label::before {
+    .section-title::before {
       content: "";
       width: 8px;
       height: 8px;
@@ -63,143 +60,190 @@
     }
 
     h1 {
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       color: #f8fafc;
-      font-size: clamp(24px, 3vw, 34px);
-      line-height: 1.1;
+      font-size: clamp(24px, 3vw, 32px);
+      line-height: 1.12;
     }
 
     .lead {
       max-width: 820px;
       color: #9ca3af;
-      font-size: 15px;
-      line-height: 1.55;
+      font-size: 14px;
+      line-height: 1.5;
     }
 
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 360px;
-      gap: 18px;
-      align-items: start;
-    }
-
-    .content-card {
+    .table-card {
       overflow: hidden;
+      border: 1px solid #262a36;
+      border-radius: 12px;
+      background: #1a1d27;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, .3), 0 2px 6px rgba(0, 0, 0, .2);
     }
 
-    .card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 18px 20px;
+    .table-title {
+      padding: 16px 18px;
       border-bottom: 1px solid #262a36;
-    }
-
-    .card-title {
       color: #f1f5f9;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
     }
 
-    .card-subtitle {
-      margin-top: 4px;
-      color: #9ca3af;
-      font-size: 13px;
-      line-height: 1.4;
+    .table-wrapper {
+      overflow-x: auto;
     }
 
-    .counter {
-      flex: none;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: #262a36;
-      color: #9ca3af;
-      font-size: 13px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    .systems-table {
+    table {
       width: 100%;
+      min-width: 1080px;
       border-collapse: collapse;
       font-size: 14px;
     }
 
-    .systems-table th {
-      padding: 11px 14px;
+    th {
+      position: relative;
+      padding: 10px 12px;
       border-bottom: 1px solid #262a36;
       color: #9ca3af;
       font-size: 12px;
       font-weight: 600;
-      letter-spacing: .03em;
+      letter-spacing: .02em;
       text-align: left;
       text-transform: uppercase;
       white-space: nowrap;
+      vertical-align: top;
     }
 
-    .systems-table td {
-      padding: 14px;
+    td {
+      padding: 13px 12px;
       border-bottom: 1px solid #1e2230;
+      color: #e5e7eb;
       vertical-align: middle;
     }
 
-    .systems-table tbody tr {
+    tbody tr {
       cursor: pointer;
       transition: background .15s ease;
     }
 
-    .systems-table tbody tr:hover,
-    .systems-table tbody tr:focus {
+    tbody tr:hover,
+    tbody tr:focus {
       background: #1e2230;
       outline: none;
     }
 
-    .systems-table tbody tr:last-child td {
+    tbody tr:last-child td {
       border-bottom: none;
     }
 
-    .system-name {
+    .header-cell {
       display: flex;
       align-items: center;
-      gap: 11px;
-      min-width: 220px;
-      color: #f1f5f9;
-      font-weight: 700;
+      justify-content: space-between;
+      gap: 8px;
     }
 
-    .system-code {
-      width: 42px;
-      height: 30px;
+    .header-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .header-icon {
+      width: 24px;
+      height: 24px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      flex: none;
-      border-radius: 8px;
-      background: #1e293b;
-      color: #60a5fa;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .04em;
+      border: 0;
+      border-radius: 5px;
+      background: transparent;
+      color: #9ca3af;
+      cursor: pointer;
+      font-size: 13px;
+      line-height: 1;
+      transition: background .15s, color .15s;
     }
 
-    .system-description {
-      max-width: 360px;
-      overflow: hidden;
-      color: #9ca3af;
+    .header-icon:hover,
+    .header-icon.is-active {
+      background: #1e2230;
+      color: #60a5fa;
+    }
+
+    .header-icon.is-running {
+      color: #60a5fa;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .filter-popover {
+      position: absolute;
+      top: 42px;
+      left: 12px;
+      z-index: 5;
+      min-width: 220px;
+      display: none;
+      padding: 10px;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      background: #111827;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, .45);
+    }
+
+    .filter-popover.is-open {
+      display: block;
+    }
+
+    .filter-control {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #374151;
+      border-radius: 7px;
+      outline: none;
+      background: #0f1117;
+      color: #e5e7eb;
       font-size: 13px;
-      line-height: 1.35;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .filter-control:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, .16);
+    }
+
+    .region-name {
+      display: grid;
+      gap: 3px;
+      min-width: 180px;
+    }
+
+    .region-name strong {
+      color: #f1f5f9;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .region-name span {
+      color: #6b7280;
+      font-size: 12px;
+    }
+
+    .url-cell {
+      max-width: 270px;
+      overflow: hidden;
+      color: #d1d5db;
+      font-size: 13px;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .route {
-      color: #d1d5db;
-      font-size: 13px;
-      white-space: nowrap;
-    }
-
-    .status {
+    .badge {
       display: inline-flex;
       align-items: center;
       gap: 7px;
@@ -210,75 +254,88 @@
       white-space: nowrap;
     }
 
-    .status::before {
+    .badge::before {
       content: "";
       width: 8px;
       height: 8px;
       border-radius: 50%;
     }
 
-    .status-ready {
+    .badge-enabled,
+    .badge-success {
       background: #0f1f17;
       color: #4ade80;
     }
 
-    .status-ready::before {
+    .badge-enabled::before,
+    .badge-success::before {
       background: #22c55e;
     }
 
-    .status-check {
-      background: #241f12;
-      color: #fbbf24;
+    .badge-disabled,
+    .badge-error {
+      background: #1f1315;
+      color: #f87171;
     }
 
-    .status-check::before {
-      background: #f59e0b;
+    .badge-disabled::before,
+    .badge-error::before {
+      background: #ef4444;
     }
 
-    .steps {
-      display: grid;
-      gap: 10px;
-      padding: 18px 20px 20px;
-      list-style: none;
-      counter-reset: connection-step;
-    }
-
-    .step {
-      display: grid;
-      grid-template-columns: 34px 1fr;
-      gap: 12px;
-      padding: 13px;
-      border: 1px solid #262a36;
-      border-radius: 10px;
-      background: #111827;
-      counter-increment: connection-step;
-    }
-
-    .step::before {
-      content: counter(connection-step);
-      width: 34px;
-      height: 34px;
-      display: grid;
-      place-items: center;
-      border-radius: 8px;
+    .badge-progress {
       background: #1e293b;
       color: #60a5fa;
-      font-size: 13px;
-      font-weight: 800;
     }
 
-    .step strong {
-      display: block;
-      margin-bottom: 4px;
-      color: #f1f5f9;
-      font-size: 14px;
-      line-height: 1.3;
+    .badge-progress::before {
+      background: #3b82f6;
+      animation: pulse 1.2s infinite;
     }
 
-    .step span {
+    .badge-idle {
+      background: #1f2937;
       color: #9ca3af;
-      font-size: 13px;
-      line-height: 1.4;
+    }
+
+    .badge-idle::before {
+      background: #6b7280;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .4; }
+    }
+
+    .status-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-action {
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: 6px;
+      background: #262a36;
+      color: #d1d5db;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+
+    .status-action:hover {
+      background: #374151;
+      color: #ffffff;
+    }
+
+    .empty-state {
+      padding: 26px;
+      color: #9ca3af;
+      text-align: center;
     }
 
     .modal-overlay {
@@ -296,29 +353,30 @@
       display: flex;
     }
 
-    .system-card {
-      width: min(680px, 100%);
-      overflow: hidden;
+    .installation-card {
+      width: min(760px, 100%);
+      max-height: calc(100vh - 36px);
+      overflow-y: auto;
       border: 1px solid #343b44;
       border-radius: 15px;
       background: #252b31;
       box-shadow: 0 24px 70px rgba(0, 0, 0, .45);
     }
 
-    .system-card-visual {
+    .card-top {
       position: relative;
-      min-height: 168px;
+      min-height: 142px;
       padding: 22px;
       display: grid;
       align-content: end;
       background:
-        radial-gradient(circle at 72% 30%, rgba(96, 165, 250, .18), transparent 32%),
+        radial-gradient(circle at 80% 20%, rgba(96, 165, 250, .2), transparent 34%),
         linear-gradient(rgba(0, 0, 0, .72), rgba(0, 0, 0, .9)),
         #020202;
       border-bottom: 1px solid #171a1e;
     }
 
-    .system-card-visual::before {
+    .card-top::before {
       content: "";
       position: absolute;
       inset: 0;
@@ -326,7 +384,7 @@
         linear-gradient(rgba(255, 255, 255, .035) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255, 255, 255, .035) 1px, transparent 1px);
       background-size: 32px 32px;
-      opacity: .7;
+      opacity: .75;
     }
 
     .card-close {
@@ -345,66 +403,96 @@
       cursor: pointer;
     }
 
-    .card-status {
-      position: absolute;
-      top: 14px;
-      left: 14px;
-      z-index: 2;
-    }
-
     .card-heading {
       position: relative;
       z-index: 1;
       display: flex;
       align-items: flex-end;
-      gap: 14px;
-    }
-
-    .card-code {
-      width: 56px;
-      height: 42px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 10px;
-      background: #1e293b;
-      color: #60a5fa;
-      font-size: 14px;
-      font-weight: 900;
-      letter-spacing: .04em;
+      justify-content: space-between;
+      gap: 18px;
     }
 
     .card-heading h2 {
-      margin-bottom: 4px;
+      margin-bottom: 6px;
       color: #f8fafc;
       font-size: 26px;
       line-height: 1.1;
     }
 
     .card-heading p {
+      max-width: 520px;
       color: #9ca3af;
       font-size: 14px;
+      line-height: 1.4;
     }
 
-    .system-card-body {
+    .card-body {
       padding: 20px 24px 24px;
-      background: #252b31;
     }
 
-    .card-details {
-      display: grid;
-      gap: 0;
+    .card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .card-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 13px;
+      border: 0;
+      border-radius: 7px;
+      background: #374151;
+      color: #d1d5db;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .card-action:hover {
+      background: #4b5563;
+      color: #fff;
+    }
+
+    .card-action.primary {
+      background: #2563eb;
+      color: #fff;
+    }
+
+    .card-action.primary:hover {
+      background: #1d4ed8;
+    }
+
+    .card-section {
+      margin-top: 18px;
+    }
+
+    .card-section:first-of-type {
+      margin-top: 0;
+    }
+
+    .card-section-title {
+      margin-bottom: 10px;
+      color: #f1f5f9;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .details {
       border-top: 1px solid #3d4650;
     }
 
     .detail-row {
       display: grid;
-      grid-template-columns: 150px 1fr;
-      gap: 18px;
-      padding: 14px 0;
+      grid-template-columns: 210px 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 12px 0;
       border-bottom: 1px solid #3d4650;
       font-size: 14px;
-      line-height: 1.45;
+      line-height: 1.4;
     }
 
     .detail-label {
@@ -415,292 +503,474 @@
     .detail-value {
       color: #f2f5f7;
       font-weight: 600;
+      word-break: break-word;
     }
 
-    @media (max-width: 900px) {
-      .layout {
-        grid-template-columns: 1fr;
-      }
-
-      .systems-table {
-        min-width: 760px;
-      }
-
-      .content-card:first-child {
-        overflow-x: auto;
-      }
+    .field-mark {
+      padding: 3px 7px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
     }
 
-    @media (max-width: 620px) {
+    .field-required {
+      background: #13251b;
+      color: #4ade80;
+    }
+
+    .field-optional {
+      background: #1f2937;
+      color: #9ca3af;
+    }
+
+    @media (max-width: 760px) {
       body {
         padding: 16px 10px;
       }
 
-      .hero,
-      .card-header {
+      .page-header {
         padding: 16px;
       }
 
-      .card-header {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
+      .card-heading,
       .detail-row {
         grid-template-columns: 1fr;
-        gap: 5px;
       }
 
       .card-heading {
         align-items: flex-start;
-        flex-direction: column;
+      }
+
+      .detail-row {
+        gap: 5px;
       }
     }
   </style>
 </head>
 <body>
   <main class="page">
-    <section class="hero">
-      <div class="section-label">ППУВ / Федерация</div>
+    <header class="page-header">
+      <div class="section-title">ППУВ / Федерация</div>
       <h1>Подключение внешних систем</h1>
       <p class="lead">
-        Страница показывает внешние системы, участвующие в федерации ППУВ, порядок их подключения
-        и карточку выбранной системы. Карточка открывается кликом по строке списка.
+        Управление региональными Installation, подключенными к СРВИ через regional FGS.
+        Карточка региона открывается кликом по строке таблицы.
       </p>
-    </section>
+    </header>
 
-    <section class="layout">
-      <article class="content-card">
-        <header class="card-header">
-          <div>
-            <div class="card-title">Список систем</div>
-            <div class="card-subtitle">Нажмите на строку, чтобы открыть карточку системы.</div>
-          </div>
-          <span class="counter">Всего: <strong id="systemsCount">0</strong></span>
-        </header>
-
-        <table class="systems-table" aria-label="Список внешних систем ППУВ">
+    <section class="table-card" aria-label="Подключенные регионы">
+      <div class="table-title">Подключенные регионы</div>
+      <div class="table-wrapper">
+        <table>
           <thead>
             <tr>
-              <th>Система</th>
-              <th>Назначение</th>
-              <th>Контур</th>
-              <th>Статус</th>
+              <th>
+                <div class="header-cell">
+                  <span>Регион</span>
+                  <span class="header-actions">
+                    <button class="header-icon" type="button" data-filter-button="region" title="Фильтр по региону" aria-label="Фильтр по региону">⌕</button>
+                  </span>
+                </div>
+                <div class="filter-popover" data-filter-panel="region">
+                  <input class="filter-control" type="search" placeholder="Найти регион" data-filter-input="region">
+                </div>
+              </th>
+              <th>
+                <div class="header-cell">
+                  <span>Federation Gateway</span>
+                  <span class="header-actions">
+                    <button class="header-icon" type="button" data-filter-button="gateway" title="Фильтр по URL" aria-label="Фильтр по URL">⌕</button>
+                  </span>
+                </div>
+                <div class="filter-popover" data-filter-panel="gateway">
+                  <input class="filter-control" type="search" placeholder="Найти URL" data-filter-input="gateway">
+                </div>
+              </th>
+              <th>
+                <div class="header-cell">
+                  <span>Статус региона</span>
+                  <span class="header-actions">
+                    <button class="header-icon" type="button" data-filter-button="status" title="Фильтр по статусу" aria-label="Фильтр по статусу">⌕</button>
+                  </span>
+                </div>
+                <div class="filter-popover" data-filter-panel="status">
+                  <select class="filter-control" data-filter-input="status">
+                    <option value="">Все</option>
+                    <option value="Enabled">Enabled</option>
+                    <option value="Disabled">Disabled</option>
+                  </select>
+                </div>
+              </th>
+              <th>
+                <div class="header-cell">
+                  <span>Probe</span>
+                  <span class="header-actions">
+                    <button class="header-icon" type="button" data-sync="probe" title="Проверить все регионы" aria-label="Проверить все регионы">↻</button>
+                    <button class="header-icon" type="button" data-filter-button="probe" title="Фильтр по probe" aria-label="Фильтр по probe">⌕</button>
+                  </span>
+                </div>
+                <div class="filter-popover" data-filter-panel="probe">
+                  <select class="filter-control" data-filter-input="probe">
+                    <option value="">Все</option>
+                    <option value="Reachable">Reachable</option>
+                    <option value="Checking">Checking</option>
+                    <option value="Unavailable">Unavailable</option>
+                  </select>
+                </div>
+              </th>
+              <th>
+                <div class="header-cell">
+                  <span>Catalog sync</span>
+                  <span class="header-actions">
+                    <button class="header-icon" type="button" data-sync="catalog" title="Синхронизировать каталоги" aria-label="Синхронизировать каталоги">↻</button>
+                    <button class="header-icon" type="button" data-filter-button="catalog" title="Фильтр по catalog sync" aria-label="Фильтр по catalog sync">⌕</button>
+                  </span>
+                </div>
+                <div class="filter-popover" data-filter-panel="catalog">
+                  <select class="filter-control" data-filter-input="catalog">
+                    <option value="">Все</option>
+                    <option value="Synced">Synced</option>
+                    <option value="Syncing">Syncing</option>
+                    <option value="Not synced">Not synced</option>
+                    <option value="Sync error">Sync error</option>
+                  </select>
+                </div>
+              </th>
+              <th>
+                <div class="header-cell">
+                  <span>Последняя проверка</span>
+                </div>
+              </th>
+              <th>
+                <div class="header-cell">
+                  <span>Последняя синхронизация</span>
+                </div>
+              </th>
             </tr>
           </thead>
-          <tbody id="systemsBody"></tbody>
+          <tbody id="installationsBody"></tbody>
         </table>
-      </article>
-
-      <aside class="content-card" aria-label="Шаги подключения">
-        <header class="card-header">
-          <div>
-            <div class="card-title">Шаги подключения</div>
-            <div class="card-subtitle">Минимальный путь подключения региона по PPUV.</div>
-          </div>
-        </header>
-        <ol class="steps">
-          <li class="step">
-            <div>
-              <strong>Включить федерацию</strong>
-              <span>На СРВИ и регионе включены FEDERATION и PPUV; роли платформ заданы как Srvi и Region.</span>
-            </div>
-          </li>
-          <li class="step">
-            <div>
-              <strong>Добавить регион</strong>
-              <span>На СРВИ создается Installation с внешним адресом regional FGS.</span>
-            </div>
-          </li>
-          <li class="step">
-            <div>
-              <strong>Настроить доверие</strong>
-              <span>FGS СРВИ получает доступ к региону через OAuth; при необходимости включается mTLS.</span>
-            </div>
-          </li>
-          <li class="step">
-            <div>
-              <strong>Проверить доступность</strong>
-              <span>Выполняется probe regional FGS и проверяется, что регион доступен.</span>
-            </div>
-          </li>
-          <li class="step">
-            <div>
-              <strong>Синхронизировать каталог</strong>
-              <span>Камеры региона появляются на СРВИ как federated projection.</span>
-            </div>
-          </li>
-          <li class="step">
-            <div>
-              <strong>Принять сценарии ППУВ</strong>
-              <span>Проверяются блокировка камеры, PTZ, архив и изъятие записи.</span>
-            </div>
-          </li>
-        </ol>
-      </aside>
+      </div>
     </section>
   </main>
 
   <div class="modal-overlay" id="cardModal" aria-hidden="true">
-    <article class="system-card" role="dialog" aria-modal="true" aria-labelledby="cardTitle">
-      <section class="system-card-visual">
+    <article class="installation-card" role="dialog" aria-modal="true" aria-labelledby="cardTitle">
+      <section class="card-top">
         <button class="card-close" type="button" aria-label="Закрыть карточку" onclick="closeCard()">×</button>
-        <div class="card-status" id="cardStatus"></div>
         <div class="card-heading">
-          <div class="card-code" id="cardCode">FGS</div>
           <div>
-            <h2 id="cardTitle">Система</h2>
-            <p id="cardSubtitle">Контур подключения</p>
+            <h2 id="cardTitle">Регион</h2>
+            <p id="cardSubtitle">Peer FGS</p>
           </div>
+          <div id="cardRegionStatus"></div>
         </div>
       </section>
-      <section class="system-card-body">
-        <div class="card-details" id="cardDetails"></div>
+      <section class="card-body">
+        <div class="card-actions">
+          <button class="card-action" type="button" id="cardStatusAction"></button>
+          <button class="card-action primary" type="button" onclick="runProbeForCurrent()">↻ Проверить подключение</button>
+          <button class="card-action primary" type="button" onclick="runCatalogSyncForCurrent()">↻ Синхронизировать каталог</button>
+        </div>
+
+        <section class="card-section">
+          <div class="card-section-title">Основное</div>
+          <div class="details" id="mainDetails"></div>
+        </section>
+
+        <section class="card-section">
+          <div class="card-section-title">OAuth</div>
+          <div class="details" id="oauthDetails"></div>
+        </section>
+
+        <section class="card-section">
+          <div class="card-section-title">Trust / Security</div>
+          <div class="details" id="trustDetails"></div>
+        </section>
       </section>
     </article>
   </div>
 
   <script>
-    const systems = [
+    const installations = [
       {
-        code: "FGS",
-        name: "Regional FGS",
-        purpose: "Единая внешняя точка входа региона для S2S-вызовов СРВИ.",
-        route: "СРВИ -> regional FGS",
-        status: "Готово",
-        statusKind: "ready",
-        description: "Через FGS проходят catalog sync, remote locks, PTZ, playback и archive/extract.",
-        connection: "В Installation на СРВИ указывается внешний адрес regional FGS.",
-        result: "СРВИ видит регион как подключенную federated installation."
+        id: "samara",
+        region: "Регион Самара",
+        installationId: "71b1f5be-8f20-4b51-8a0e-0c2a7d9d0101",
+        federationGatewayBaseUrl: "https://samara.example.ru:8132",
+        status: "Enabled",
+        probe: "Reachable",
+        catalog: "Synced",
+        lastProbeAt: "14.07.2026, 09:38",
+        lastCatalogSyncAt: "14.07.2026, 09:16",
+        tokenUrl: "https://samara.example.ru/rm/connect/token",
+        clientId: "srvi-federation-samara",
+        requireMutualTls: "Да",
+        certificateThumbprint: "‎A4:52:91:...:7F",
+        allowedNetworks: "10.24.0.0/16"
       },
       {
-        code: "OAuth",
-        name: "Региональный OAuth",
-        purpose: "Выдает токен для защищенного inbound S2S-доступа.",
-        route: "FGS СРВИ -> RM региона",
-        status: "Готово",
-        statusKind: "ready",
-        description: "Используется client credentials контур региона.",
-        connection: "Для подключения нужен OAuth-клиент региона с правами federation inbound.",
-        result: "Запросы без валидного токена не проходят в regional FGS."
+        id: "tolyatti",
+        region: "Регион Тольятти",
+        installationId: "18c5f49f-9d3d-4b03-9a4c-b83b26c10202",
+        federationGatewayBaseUrl: "https://tlt.example.ru:8132",
+        status: "Enabled",
+        probe: "Checking",
+        catalog: "Syncing",
+        lastProbeAt: "14.07.2026, 09:31",
+        lastCatalogSyncAt: "Выполняется",
+        tokenUrl: "https://tlt.example.ru/rm/connect/token",
+        clientId: "srvi-federation-tlt",
+        requireMutualTls: "Нет",
+        certificateThumbprint: "-",
+        allowedNetworks: "-"
       },
       {
-        code: "ENM",
-        name: "Каталог камер региона",
-        purpose: "Передает камеры региона в каталог СРВИ как federated projection.",
-        route: "regional FGS -> ENM",
-        status: "Проверить",
-        statusKind: "check",
-        description: "После синхронизации у камеры появляется источник региона и статус синхронизации.",
-        connection: "Catalog sync запускается через FGS, прямой внешний URL ENM не вводится.",
-        result: "Оператор ППУВ видит камеры региона в общем каталоге."
+        id: "ulyanovsk",
+        region: "Регион Ульяновск",
+        installationId: "3bb17b9a-c6ec-4724-bc45-7c7682f30303",
+        federationGatewayBaseUrl: "https://uln.example.ru:8132",
+        status: "Disabled",
+        probe: "Unavailable",
+        catalog: "Not synced",
+        lastProbeAt: "13.07.2026, 18:02",
+        lastCatalogSyncAt: "-",
+        tokenUrl: "https://uln.example.ru/rm/connect/token",
+        clientId: "srvi-federation-uln",
+        requireMutualTls: "Да",
+        certificateThumbprint: "‎B1:42:00:...:E9",
+        allowedNetworks: "10.32.0.0/16"
       },
       {
-        code: "RSM",
-        name: "Блокировки ППУВ",
-        purpose: "Обрабатывает StreamBlock, PTZ и Archive-lock для federated камер.",
-        route: "FGS -> RSM региона",
-        status: "Готово",
-        statusKind: "ready",
-        description: "RSM региона фиксирует lease, а СРВИ хранит пользовательский журнал операции.",
-        connection: "Вызовы идут через regional FGS и внутреннюю маршрутизацию региона.",
-        result: "ППУВ может блокировать live, PTZ и архив камеры региона."
-      },
-      {
-        code: "SB",
-        name: "Playback региона",
-        purpose: "Выдает live URL, архивные сегменты и данные для изъятия записи.",
-        route: "FGS -> SB региона",
-        status: "Готово",
-        statusKind: "ready",
-        description: "Playback федеративной камеры проходит через FGS без прямого доступа пользователя в регион.",
-        connection: "СРВИ обращается к playback через свой FGS и peer FGS региона.",
-        result: "Оператор ППУВ получает live и архив с учетом блокировок."
-      },
-      {
-        code: "DCS",
-        name: "PTZ региона",
-        purpose: "Исполняет команды управления камерой после перехвата PTZ.",
-        route: "FGS -> DCS региона",
-        status: "Проверить",
-        statusKind: "check",
-        description: "Команды PTZ выполняются только после успешного lock в RSM.",
-        connection: "FGS проксирует команды во внутренний DCS региона.",
-        result: "Оператор ППУВ управляет PTZ, гражданская сессия региона сбрасывается."
-      },
-      {
-        code: "RFM",
-        name: "Импорт архива",
-        purpose: "Сохраняет изъятую запись региона как материал на СРВИ.",
-        route: "regional SB -> RFM СРВИ",
-        status: "Проверить",
-        statusKind: "check",
-        description: "Регион отдает временную ссылку на фрагмент архива, СРВИ импортирует его в RFM.",
-        connection: "Extract запускается через FGS; пользовательские метаданные не раскрывают технический origin.",
-        result: "Изъятый фрагмент становится обычным MediaItem на СРВИ."
+        id: "kazan",
+        region: "Регион Казань",
+        installationId: "82e7a2af-0f71-4959-a0f7-44fbd78d0404",
+        federationGatewayBaseUrl: "https://kazan.example.ru:8132",
+        status: "Enabled",
+        probe: "Reachable",
+        catalog: "Sync error",
+        lastProbeAt: "14.07.2026, 08:57",
+        lastCatalogSyncAt: "14.07.2026, 08:44",
+        tokenUrl: "https://kazan.example.ru/rm/connect/token",
+        clientId: "srvi-federation-kazan",
+        requireMutualTls: "Нет",
+        certificateThumbprint: "-",
+        allowedNetworks: "10.40.0.0/16"
       }
     ];
 
-    const systemsBody = document.getElementById("systemsBody");
-    const systemsCount = document.getElementById("systemsCount");
+    const filters = {
+      region: "",
+      gateway: "",
+      status: "",
+      probe: "",
+      catalog: ""
+    };
+
+    let currentInstallationId = null;
+
+    const installationsBody = document.getElementById("installationsBody");
     const cardModal = document.getElementById("cardModal");
 
-    function statusHtml(system) {
-      const className = system.statusKind === "ready" ? "status status-ready" : "status status-check";
-      return '<span class="' + className + '">' + escapeHtml(system.status) + '</span>';
-    }
+    function renderTable() {
+      const visible = installations.filter(matchesFilters);
 
-    function renderSystems() {
-      systemsCount.textContent = systems.length;
-      systemsBody.innerHTML = systems.map((system, index) => {
-        return '<tr tabindex="0" data-index="' + index + '">' +
-          '<td><div class="system-name"><span class="system-code">' + escapeHtml(system.code) + '</span>' + escapeHtml(system.name) + '</div></td>' +
-          '<td><div class="system-description" title="' + escapeHtml(system.purpose) + '">' + escapeHtml(system.purpose) + '</div></td>' +
-          '<td><span class="route">' + escapeHtml(system.route) + '</span></td>' +
-          '<td>' + statusHtml(system) + '</td>' +
-        '</tr>';
-      }).join("");
+      installationsBody.innerHTML = visible.length
+        ? visible.map(createRow).join("")
+        : '<tr><td colspan="7"><div class="empty-state">Региональные подключения не найдены</div></td></tr>';
 
-      systemsBody.querySelectorAll("tr").forEach(row => {
-        row.addEventListener("click", () => openCard(Number(row.dataset.index)));
+      installationsBody.querySelectorAll("tr[data-id]").forEach(row => {
+        row.addEventListener("click", () => openCard(row.dataset.id));
         row.addEventListener("keydown", event => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
-            openCard(Number(row.dataset.index));
+            openCard(row.dataset.id);
           }
         });
       });
     }
 
-    function openCard(index) {
-      const system = systems[index];
-      if (!system) return;
+    function createRow(installation) {
+      return '<tr tabindex="0" data-id="' + installation.id + '">' +
+        '<td><div class="region-name"><strong>' + escapeHtml(installation.region) + '</strong><span>' + escapeHtml(installation.installationId) + '</span></div></td>' +
+        '<td><div class="url-cell" title="' + escapeHtml(installation.federationGatewayBaseUrl) + '">' + escapeHtml(installation.federationGatewayBaseUrl) + '</div></td>' +
+        '<td><div class="status-cell">' + statusBadge(installation.status, "region") + '<button class="status-action" type="button" title="' + statusActionTitle(installation) + '" aria-label="' + statusActionTitle(installation) + '" onclick="toggleInstallationStatus(event, \'' + installation.id + '\')">⏻</button></div></td>' +
+        '<td>' + statusBadge(installation.probe, "probe") + '</td>' +
+        '<td>' + statusBadge(installation.catalog, "catalog") + '</td>' +
+        '<td>' + escapeHtml(installation.lastProbeAt) + '</td>' +
+        '<td>' + escapeHtml(installation.lastCatalogSyncAt) + '</td>' +
+      '</tr>';
+    }
 
-      document.getElementById("cardStatus").innerHTML = statusHtml(system);
-      document.getElementById("cardCode").textContent = system.code;
-      document.getElementById("cardTitle").textContent = system.name;
-      document.getElementById("cardSubtitle").textContent = system.route;
-      document.getElementById("cardDetails").innerHTML = [
-        detailRow("Назначение", system.purpose),
-        detailRow("Описание", system.description),
-        detailRow("Подключение", system.connection),
-        detailRow("Результат", system.result)
-      ].join("");
+    function matchesFilters(installation) {
+      const regionQuery = filters.region.trim().toLowerCase();
+      const gatewayQuery = filters.gateway.trim().toLowerCase();
 
+      if (regionQuery && !installation.region.toLowerCase().includes(regionQuery)) return false;
+      if (gatewayQuery && !installation.federationGatewayBaseUrl.toLowerCase().includes(gatewayQuery)) return false;
+      if (filters.status && installation.status !== filters.status) return false;
+      if (filters.probe && installation.probe !== filters.probe) return false;
+      if (filters.catalog && installation.catalog !== filters.catalog) return false;
+
+      return true;
+    }
+
+    function statusBadge(value, type) {
+      let className = "badge-idle";
+
+      if (type === "region") {
+        className = value === "Enabled" ? "badge-enabled" : "badge-disabled";
+      } else if (value === "Reachable" || value === "Synced") {
+        className = "badge-success";
+      } else if (value === "Checking" || value === "Syncing") {
+        className = "badge-progress";
+      } else if (value === "Unavailable" || value === "Sync error") {
+        className = "badge-error";
+      }
+
+      return '<span class="badge ' + className + '">' + escapeHtml(value) + '</span>';
+    }
+
+    function statusActionTitle(installation) {
+      return installation.status === "Enabled" ? "Отключить регион" : "Включить регион";
+    }
+
+    function toggleInstallationStatus(event, installationId) {
+      event.stopPropagation();
+      const installation = getInstallation(installationId);
+      if (!installation) return;
+
+      installation.status = installation.status === "Enabled" ? "Disabled" : "Enabled";
+      console.log("PATCH /federation/installations/" + installationId + "/status", { status: installation.status });
+      renderTable();
+      if (currentInstallationId === installationId) {
+        renderCard(installation);
+      }
+    }
+
+    function runHeaderSync(type, button) {
+      button.classList.add("is-running");
+
+      installations.forEach(installation => {
+        if (installation.status !== "Enabled") return;
+        if (type === "probe") {
+          installation.probe = "Checking";
+          installation.lastProbeAt = "Выполняется";
+        } else {
+          installation.catalog = "Syncing";
+          installation.lastCatalogSyncAt = "Выполняется";
+        }
+      });
+
+      console.log(type === "probe"
+        ? "POST /federation/installations/*/probe"
+        : "POST /federation/installations/*/catalog/sync");
+      renderTable();
+
+      window.setTimeout(() => {
+        button.classList.remove("is-running");
+      }, 800);
+    }
+
+    function openCard(installationId) {
+      const installation = getInstallation(installationId);
+      if (!installation) return;
+
+      currentInstallationId = installationId;
+      renderCard(installation);
       cardModal.classList.add("is-open");
       cardModal.setAttribute("aria-hidden", "false");
+    }
+
+    function renderCard(installation) {
+      document.getElementById("cardTitle").textContent = installation.region;
+      document.getElementById("cardSubtitle").textContent = installation.federationGatewayBaseUrl;
+      document.getElementById("cardRegionStatus").innerHTML = statusBadge(installation.status, "region");
+
+      const action = document.getElementById("cardStatusAction");
+      action.textContent = installation.status === "Enabled" ? "⏻ Отключить регион" : "⏻ Включить регион";
+      action.onclick = () => toggleInstallationStatus({ stopPropagation() {} }, installation.id);
+
+      document.getElementById("mainDetails").innerHTML = [
+        detailRow("Region name", installation.region, "required"),
+        detailRow("FederationGatewayBaseUrl", installation.federationGatewayBaseUrl, "required"),
+        detailRow("Mode", "PeerFgs", "optional"),
+        detailRow("Installation status", installation.status, "optional"),
+        detailRow("Probe status", installation.probe, "optional"),
+        detailRow("Catalog sync status", installation.catalog, "optional"),
+        detailRow("Last probe", installation.lastProbeAt, "optional"),
+        detailRow("Last catalog sync", installation.lastCatalogSyncAt, "optional")
+      ].join("");
+
+      document.getElementById("oauthDetails").innerHTML = [
+        detailRow("TokenUrl", installation.tokenUrl, "required"),
+        detailRow("ClientId", installation.clientId, "required"),
+        detailRow("ClientSecret", "••••••••••••", "required")
+      ].join("");
+
+      document.getElementById("trustDetails").innerHTML = [
+        detailRow("CertificateThumbprint", installation.certificateThumbprint, "optional"),
+        detailRow("RequireMutualTls", installation.requireMutualTls, "optional"),
+        detailRow("AllowedNetworks", installation.allowedNetworks, "optional")
+      ].join("");
+    }
+
+    function detailRow(label, value, mark) {
+      const markClass = mark === "required" ? "field-required" : "field-optional";
+      const markText = mark === "required" ? "обязательное" : "опциональное";
+
+      return '<div class="detail-row">' +
+        '<div class="detail-label">' + escapeHtml(label) + '</div>' +
+        '<div class="detail-value">' + escapeHtml(value) + '</div>' +
+        '<div><span class="field-mark ' + markClass + '">' + markText + '</span></div>' +
+      '</div>';
+    }
+
+    function runProbeForCurrent() {
+      const installation = getInstallation(currentInstallationId);
+      if (!installation) return;
+
+      installation.probe = "Checking";
+      installation.lastProbeAt = "Выполняется";
+      console.log("POST /federation/installations/" + installation.id + "/probe");
+      renderTable();
+      renderCard(installation);
+    }
+
+    function runCatalogSyncForCurrent() {
+      const installation = getInstallation(currentInstallationId);
+      if (!installation) return;
+
+      installation.catalog = "Syncing";
+      installation.lastCatalogSyncAt = "Выполняется";
+      console.log("POST /federation/installations/" + installation.id + "/catalog/sync");
+      renderTable();
+      renderCard(installation);
     }
 
     function closeCard() {
       cardModal.classList.remove("is-open");
       cardModal.setAttribute("aria-hidden", "true");
+      currentInstallationId = null;
     }
 
-    function detailRow(label, value) {
-      return '<div class="detail-row">' +
-        '<div class="detail-label">' + escapeHtml(label) + '</div>' +
-        '<div class="detail-value">' + escapeHtml(value) + '</div>' +
-      '</div>';
+    function getInstallation(installationId) {
+      return installations.find(installation => installation.id === installationId);
+    }
+
+    function closeFilterPanels(except) {
+      document.querySelectorAll("[data-filter-panel]").forEach(panel => {
+        if (panel.dataset.filterPanel !== except) {
+          panel.classList.remove("is-open");
+        }
+      });
+
+      document.querySelectorAll("[data-filter-button]").forEach(button => {
+        if (button.dataset.filterButton !== except) {
+          button.classList.remove("is-active");
+        }
+      });
     }
 
     function escapeHtml(value) {
@@ -712,19 +982,58 @@
         .replace(/'/g, "&#039;");
     }
 
-    cardModal.addEventListener("click", event => {
-      if (event.target === cardModal) {
-        closeCard();
+    document.querySelectorAll("[data-filter-button]").forEach(button => {
+      button.addEventListener("click", event => {
+        event.stopPropagation();
+        const key = button.dataset.filterButton;
+        const panel = document.querySelector('[data-filter-panel="' + key + '"]');
+        const willOpen = !panel.classList.contains("is-open");
+        closeFilterPanels(key);
+        panel.classList.toggle("is-open", willOpen);
+        button.classList.toggle("is-active", willOpen);
+        const control = panel.querySelector(".filter-control");
+        if (willOpen && control) control.focus();
+      });
+    });
+
+    document.querySelectorAll("[data-filter-input]").forEach(control => {
+      control.addEventListener("input", () => {
+        filters[control.dataset.filterInput] = control.value;
+        renderTable();
+      });
+      control.addEventListener("change", () => {
+        filters[control.dataset.filterInput] = control.value;
+        renderTable();
+      });
+    });
+
+    document.querySelectorAll("[data-sync]").forEach(button => {
+      button.addEventListener("click", event => {
+        event.stopPropagation();
+        runHeaderSync(button.dataset.sync, button);
+      });
+    });
+
+    document.addEventListener("click", event => {
+      if (!event.target.closest("th")) {
+        closeFilterPanels();
       }
     });
 
     document.addEventListener("keydown", event => {
       if (event.key === "Escape") {
         closeCard();
+        closeFilterPanels();
       }
     });
 
-    renderSystems();
+    cardModal.addEventListener("click", event => {
+      if (event.target === cardModal) {
+        closeCard();
+      }
+    });
+
+    renderTable();
   </script>
 </body>
 </html>
