@@ -577,7 +577,8 @@
       cursor: pointer;
     }
 
-    .archive-lock-remove:disabled {
+    .archive-lock-remove:disabled,
+    .archive-lock-remove[aria-disabled="true"] {
       border-color: rgba(255, 255, 255, .08);
       background: var(--panel-3);
       color: var(--soft);
@@ -1000,11 +1001,8 @@
 
             <div class="archive-lock-row">
               <span class="archive-number">1</span>
-              <span class="archive-period">
-                <span>14.07.2026 08:00</span>
-                <span>14.07.2026 12:00</span>
-              </span>
-              <button class="archive-lock-remove" type="button" data-release-archive-lock aria-label="Снять блокировку архива №1">
+              <span class="archive-period">14.07.2026 08:00 — 14.07.2026 12:00</span>
+              <button class="archive-lock-remove" type="button" data-release-archive-lock title="Можно снять блокировку" aria-label="Снять блокировку архива №1">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
                 </svg>
@@ -1013,11 +1011,8 @@
 
             <div class="archive-lock-row">
               <span class="archive-number">2</span>
-              <span class="archive-period">
-                <span>14.07.2026 12:00</span>
-                <span>14.07.2026 18:00</span>
-              </span>
-              <button class="archive-lock-remove" type="button" disabled aria-label="Снятие блокировки архива №2 недоступно">
+              <span class="archive-period">14.07.2026 12:00 — 14.07.2026 18:00</span>
+              <button class="archive-lock-remove" type="button" aria-disabled="true" title="Запрещено: недостаточно прав" aria-label="Снятие блокировки архива №2 недоступно">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
                 </svg>
@@ -1026,11 +1021,8 @@
 
             <div class="archive-lock-row">
               <span class="archive-number">3</span>
-              <span class="archive-period">
-                <span>15.07.2026 09:30</span>
-                <span>15.07.2026 13:30</span>
-              </span>
-              <button class="archive-lock-remove" type="button" data-release-archive-lock aria-label="Снять блокировку архива №3">
+              <span class="archive-period">15.07.2026 09:30 — 15.07.2026 13:30</span>
+              <button class="archive-lock-remove" type="button" data-release-archive-lock title="Можно снять блокировку" aria-label="Снять блокировку архива №3">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
                 </svg>
@@ -1039,11 +1031,8 @@
 
             <div class="archive-lock-row">
               <span class="archive-number">4</span>
-              <span class="archive-period">
-                <span>16.07.2026 00:00</span>
-                <span>16.07.2026 23:59</span>
-              </span>
-              <button class="archive-lock-remove" type="button" disabled aria-label="Снятие блокировки архива №4 недоступно">
+              <span class="archive-period">16.07.2026 00:00 — 16.07.2026 23:59</span>
+              <button class="archive-lock-remove" type="button" aria-disabled="true" title="Запрещено: недостаточно прав" aria-label="Снятие блокировки архива №4 недоступно">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
                 </svg>

@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Снятие блокировок архива</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page: #101417;
+      --panel: #20262c;
+      --panel-2: #2b3239;
+      --panel-3: #343c45;
+      --line: #3d4650;
+      --text: #f2f5f7;
+      --muted: #a9b0ba;
+      --soft: #7f8a96;
+      --danger: #ff6b6b;
+      font-family: Inter, Roboto, "Segoe UI", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 18% 20%, rgba(58, 125, 70, .18), transparent 30%),
+        radial-gradient(circle at 82% 12%, rgba(80, 122, 180, .14), transparent 26%),
+        linear-gradient(135deg, #101417, #15191e 52%, #0b0d10);
+      color: var(--text);
+    }
+
+    .archive-release-form {
+      width: min(440px, calc(100vw - 32px));
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--panel);
+      box-shadow: 0 22px 56px rgba(0, 0, 0, .56), inset 0 1px 0 rgba(255, 255, 255, .03);
+    }
+
+    .form-header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--text);
+      font-size: 17px;
+      line-height: 1.2;
+    }
+
+    .close-button {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 9px;
+      background: var(--panel-2);
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .close-button:hover {
+      background: rgba(255, 255, 255, .08);
+    }
+
+    .close-button svg,
+    .remove-button svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    .archive-locks {
+      display: grid;
+      gap: 8px;
+    }
+
+    .archive-lock-header,
+    .archive-lock-row {
+      display: grid;
+      grid-template-columns: 46px 1fr 34px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .archive-lock-header {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .archive-lock-row {
+      min-height: 48px;
+      padding: 9px 10px;
+      border: 1px solid rgba(255, 255, 255, .07);
+      border-radius: 12px;
+      background: #171c21;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+      transition: opacity .16s ease;
+    }
+
+    .archive-lock-row.is-removed {
+      opacity: .42;
+    }
+
+    .archive-lock-row.is-removed .period {
+      text-decoration: line-through;
+    }
+
+    .number {
+      color: var(--muted);
+    }
+
+    .period {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .remove-button {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+      color: #ffdede;
+    }
+
+    .remove-button.active {
+      border: 1px solid rgba(255, 107, 107, .42);
+      background: rgba(255, 107, 107, .16);
+      cursor: pointer;
+    }
+
+    .remove-button.locked {
+      border: 1px solid rgba(255, 255, 255, .08);
+      background: var(--panel-3);
+      color: var(--soft);
+      cursor: not-allowed;
+      opacity: .72;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 14px;
+    }
+
+    .secondary-button {
+      min-height: 36px;
+      padding: 8px 12px;
+      border: 0;
+      border-radius: 10px;
+      background: var(--panel-3);
+      color: var(--text);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <section class="archive-release-form" aria-label="Форма снятия блокировок архива">
+    <header class="form-header">
+      <h1>Снятие блокировок архива</h1>
+      <button class="close-button" type="button" aria-label="Закрыть форму">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="archive-locks">
+      <div class="archive-lock-header" aria-hidden="true">
+        <span>№</span>
+        <span>Период</span>
+        <span></span>
+      </div>
+
+      <div class="archive-lock-row">
+        <span class="number">1</span>
+        <span class="period">14.07.2026 08:00 — 14.07.2026 12:00</span>
+        <button class="remove-button active" type="button" title="Можно снять блокировку" aria-label="Снять блокировку архива №1">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="archive-lock-row">
+        <span class="number">2</span>
+        <span class="period">14.07.2026 12:00 — 14.07.2026 18:00</span>
+        <button class="remove-button locked" type="button" aria-disabled="true" title="Запрещено: недостаточно прав" aria-label="Снятие блокировки архива №2 недоступно">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="archive-lock-row">
+        <span class="number">3</span>
+        <span class="period">15.07.2026 09:30 — 15.07.2026 13:30</span>
+        <button class="remove-button active" type="button" title="Можно снять блокировку" aria-label="Снять блокировку архива №3">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="archive-lock-row">
+        <span class="number">4</span>
+        <span class="period">16.07.2026 00:00 — 16.07.2026 23:59</span>
+        <button class="remove-button locked" type="button" aria-disabled="true" title="Запрещено: недостаточно прав" aria-label="Снятие блокировки архива №4 недоступно">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6.4 4.9 12 10.5l5.6-5.6 1.5 1.5-5.6 5.6 5.6 5.6-1.5 1.5-5.6-5.6-5.6 5.6-1.5-1.5 5.6-5.6-5.6-5.6z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="secondary-button" type="button">Закрыть</button>
+    </div>
+  </section>
+
+  <script>
+    const activeButtons = document.querySelectorAll(".remove-button.active");
+
+    activeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        if (button.getAttribute("aria-disabled") === "true") {
+          return;
+        }
+
+        button.closest(".archive-lock-row")?.classList.add("is-removed");
+        button.classList.remove("active");
+        button.classList.add("locked");
+        button.setAttribute("aria-disabled", "true");
+        button.setAttribute("title", "Блокировка уже снята");
+      });
+    });
+  </script>
+</body>
+</html>
