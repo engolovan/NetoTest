@@ -382,6 +382,12 @@
       background: #1d4ed8;
     }
 
+    .btn:disabled {
+      background: #374151;
+      color: #6b7280;
+      cursor: not-allowed;
+    }
+
     .btn-secondary {
       background: #374151;
       color: #d1d5db;
@@ -458,6 +464,13 @@
       padding: 20px 24px 24px;
     }
 
+    .card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
     .form-section {
       margin-bottom: 18px;
     }
@@ -530,7 +543,15 @@
         flex-direction: column-reverse;
       }
 
+      .card-actions {
+        flex-direction: column;
+      }
+
       .form-actions button {
+        width: 100%;
+      }
+
+      .card-actions button {
         width: 100%;
       }
     }
@@ -662,6 +683,12 @@
       <form class="card-body" id="installationForm" onsubmit="saveInstallation(event)">
         <input type="hidden" id="formInstallationKey">
 
+        <div class="card-actions">
+          <button class="btn btn-secondary" id="formStatusAction" type="button" onclick="toggleStatusFromForm()">Отключить регион</button>
+          <button class="btn" id="formProbeAction" type="button" onclick="runProbeFromForm()">↻ Проверить подключение</button>
+          <button class="btn" id="formCatalogAction" type="button" onclick="runCatalogSyncFromForm()">↻ Синхронизировать каталог</button>
+        </div>
+
         <section class="form-section">
           <div class="form-section-title">Основное</div>
           <div class="form-grid">
@@ -679,7 +706,7 @@
             </div>
             <div class="form-field">
               <label for="statusInput">Статус региона</label>
-              <select class="form-control" id="statusInput">
+              <select class="form-control" id="statusInput" onchange="updateFormActions()">
                 <option value="Enabled">Enabled</option>
                 <option value="Disabled">Disabled</option>
               </select>
@@ -947,6 +974,7 @@
       document.getElementById("probeInput").value = "Unavailable";
       document.getElementById("catalogInput").value = "Not synced";
       document.getElementById("modeInput").value = "PeerFgs";
+      updateFormActions();
       openForm();
     }
 
@@ -971,7 +999,61 @@
       document.getElementById("thumbprintInput").value = installation.certificateThumbprint;
       document.getElementById("mtlsInput").value = installation.requireMutualTls;
       document.getElementById("allowedNetworksInput").value = installation.allowedNetworks;
+      updateFormActions();
       openForm();
+    }
+
+    function updateFormActions() {
+      const existingId = document.getElementById("formInstallationKey").value;
+      const status = document.getElementById("statusInput").value;
+      const isExisting = Boolean(existingId);
+      const statusAction = document.getElementById("formStatusAction");
+      const probeAction = document.getElementById("formProbeAction");
+      const catalogAction = document.getElementById("formCatalogAction");
+
+      statusAction.disabled = !isExisting;
+      probeAction.disabled = !isExisting;
+      catalogAction.disabled = !isExisting;
+      statusAction.textContent = status === "Enabled" ? "Отключить регион" : "Включить регион";
+    }
+
+    function toggleStatusFromForm() {
+      const existingId = document.getElementById("formInstallationKey").value;
+      const installation = getInstallation(existingId);
+      if (!installation) return;
+
+      const nextStatus = document.getElementById("statusInput").value === "Enabled" ? "Disabled" : "Enabled";
+      document.getElementById("statusInput").value = nextStatus;
+      installation.status = nextStatus;
+      console.log("PATCH /federation/installations/" + existingId + "/status", { status: nextStatus });
+      updateFormActions();
+      renderTable();
+    }
+
+    function runProbeFromForm() {
+      const existingId = document.getElementById("formInstallationKey").value;
+      const installation = getInstallation(existingId);
+      if (!installation) return;
+
+      document.getElementById("probeInput").value = "Checking";
+      document.getElementById("lastProbeInput").value = "Выполняется";
+      installation.probe = "Checking";
+      installation.lastProbeAt = "Выполняется";
+      console.log("POST /federation/installations/" + existingId + "/probe");
+      renderTable();
+    }
+
+    function runCatalogSyncFromForm() {
+      const existingId = document.getElementById("formInstallationKey").value;
+      const installation = getInstallation(existingId);
+      if (!installation) return;
+
+      document.getElementById("catalogInput").value = "Syncing";
+      document.getElementById("lastCatalogInput").value = "Выполняется";
+      installation.catalog = "Syncing";
+      installation.lastCatalogSyncAt = "Выполняется";
+      console.log("POST /federation/installations/" + existingId + "/catalog/sync");
+      renderTable();
     }
 
     function openForm() {
