@@ -47,7 +47,7 @@
       left: 8px;
       width: calc(100vw - 14px);
       max-width: 1012px;
-      min-height: 335px;
+      min-height: 405px;
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.025);
       border-radius: 14px;
@@ -110,8 +110,8 @@
 
     .content {
       position: relative;
-      height: 135px;
-      padding: 38px 47px 0 53px;
+      height: 205px;
+      padding: 27px 47px 0 53px;
       background: rgba(35, 41, 47, 0.66);
     }
 
@@ -119,6 +119,10 @@
       display: flex;
       align-items: center;
       gap: 16px;
+    }
+
+    .form-row + .form-row {
+      margin-top: 16px;
     }
 
     .label {
@@ -148,13 +152,10 @@
         inset 0 2px 8px rgba(0, 0, 0, 0.22);
     }
 
-    .select {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    .select-wrap {
+      position: relative;
       width: 198px;
       height: 70px;
-      padding: 0 20px 0 25px;
       border: 1px solid rgba(255, 255, 255, 0.035);
       border-radius: 15px;
       background: linear-gradient(180deg, #343c43 0%, #30383e 45%, #2d3439 100%);
@@ -163,23 +164,44 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.025);
     }
 
-    .select span {
+    .select-wrap.stream-select {
+      width: 384px;
+    }
+
+    .custom-select {
+      width: 100%;
+      height: 100%;
+      padding: 0 54px 0 25px;
+      border: 0;
+      outline: none;
+      appearance: none;
+      color: #f0f2f5;
+      background: transparent;
       font-size: 25px;
       font-weight: 700;
-      color: #f0f2f5;
+      cursor: pointer;
       text-shadow:
         0 0 2px rgba(255, 255, 255, 0.35),
         0 2px 2px rgba(0, 0, 0, 0.72);
     }
 
+    .custom-select option {
+      color: #eef2f7;
+      background: #30383e;
+      font-weight: 700;
+    }
+
     .chevron {
+      position: absolute;
+      top: 22px;
+      right: 20px;
       width: 19px;
       height: 19px;
-      margin-top: -7px;
       border-right: 4px solid #dce2e8;
       border-bottom: 4px solid #dce2e8;
       border-radius: 2px;
       transform: rotate(45deg);
+      pointer-events: none;
       filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55));
     }
 
@@ -214,39 +236,6 @@
       text-shadow: 0 1px 1px rgba(0, 0, 0, 0.75);
     }
 
-    .cursor-hand {
-      position: absolute;
-      right: 250px;
-      bottom: 5px;
-      width: 22px;
-      height: 31px;
-      opacity: 0.96;
-      filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.65));
-    }
-
-    .cursor-hand::before {
-      content: "";
-      position: absolute;
-      left: 8px;
-      top: 0;
-      width: 8px;
-      height: 28px;
-      border-radius: 6px;
-      background: #ffffff;
-    }
-
-    .cursor-hand::after {
-      content: "";
-      position: absolute;
-      left: 2px;
-      top: 10px;
-      width: 18px;
-      height: 18px;
-      border-radius: 8px 8px 5px 5px;
-      background: #ffffff;
-      clip-path: polygon(38% 0, 56% 0, 56% 45%, 70% 25%, 81% 37%, 70% 55%, 86% 46%, 96% 62%, 72% 81%, 31% 81%, 12% 45%, 27% 37%, 38% 55%);
-    }
-
     @media (max-width: 820px) {
       .modal {
         position: relative;
@@ -268,10 +257,6 @@
       .label {
         width: 100%;
       }
-
-      .cursor-hand {
-        display: none;
-      }
     }
   </style>
 </head>
@@ -285,11 +270,28 @@
 
       <div class="content">
         <div class="form-row">
+          <label class="label" for="stream-type">Поток</label>
+          <div class="select-wrap stream-select">
+            <select id="stream-type" class="custom-select">
+              <option selected>Основной</option>
+              <option>Субпоток</option>
+            </select>
+            <i class="chevron" aria-hidden="true"></i>
+          </div>
+        </div>
+
+        <div class="form-row">
           <label class="label" for="archive-depth">Глубина архива</label>
           <input id="archive-depth" class="input" type="text" />
 
-          <div class="select" role="button" aria-label="Единицы измерения">
-            <span>Минут</span>
+          <div class="select-wrap">
+            <select class="custom-select" aria-label="Единицы измерения">
+              <option selected>Минут</option>
+              <option>Часов</option>
+              <option>Секунд</option>
+              <option>Дней</option>
+              <option>Месяцев</option>
+            </select>
             <i class="chevron" aria-hidden="true"></i>
           </div>
 
@@ -298,7 +300,6 @@
       </div>
 
       <p class="note">Последнее изменение: от 24.01.01 , 1 месяц, от Иванов И.И.</p>
-      <div class="cursor-hand" aria-hidden="true"></div>
     </section>
   </main>
 </body>
